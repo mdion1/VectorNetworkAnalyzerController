@@ -1,0 +1,45 @@
+Set up measurement as you would with the front panel keys
+-Select analyzer type ("Analyzer type" -> "Network Analyzer" or "NA")
+-Select Active Channel ("Active channel" -> "Chan1" and/or "Chan2")
+-Dual channel display ? ("Display" -> "Dual chan" -> "On")
+-Set up trigger ("Trigger" -> "Manual")
+-Set up sweep conditions ("Trigger" -> "Single"/"continuous")
+	-"Sweep" -> "Sweep type menu" -> "Log freq"
+-Select input port in NA mode ("Meas" -> "A/B")
+-Select Meas. format ("Format" -> "PHASE" or "LIN MAG" or "LOG MAG", "PHASE UNIT DEG")
+-Marker readout ? ("Utility" -> "smth/polar menu" -> "LIN MAG PHASE")
+
+"NA"			network analyzer
+"MEAS AB"		input port A/B
+"FMT LINM"		format linear mag
+"FMT PHASE"		format phase
+"PHAU DEG"		phase unit degrees
+"AUTO"			autoscale
+"SCAL <numeric>"	scale/div
+"ATTA <numeric>"	Atten A
+"ATTB <numeric>"	Atten B
+"ATTR <numeric>"	Atten ref
+"AVER {ON|OFF}"		averaging on or off
+"AVERFACT <numeric>"	averaging factor
+
+"SWETAUTO {ON|OFF}"	sweep time auto/manual
+"POIN <numeric>"	number of points
+"SWPT LOGF"		sweep time log freq
+
+source
+"POWE <numeric>"	source power
+"CWFREQ <numeric>"	??
+
+trigger
+"TRGS MAN"		manual trigger
+"CONT"			continuous ?
+"SING"			single ?
+"STAR <numeric>"	start ?
+"STOP <numeric>"	stop ?
+
+"CIRF LIN"		smith/pol menu -> lin mag phase
+
+"OUTPMKR?"		output marker value
+
+"FORM3"			64-bit float
+"OUTPDATA?"	

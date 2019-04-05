@@ -2,26 +2,22 @@
 #define GPIB_COMMS_H
 
 #include <QSerialPort>
-#include <QThread>
+#include <QDebug>
 
-class GPIB_comms : public QThread
+class GPIB_comms : QObject
 {
     Q_OBJECT
 public:
-    GPIB_comms();
-    void run();
-    void setPortName(QString portname) { _portname = portname; }
+	void setup(QString portname);
     void writeToInstr(const char * msg);
-	void testFn();
-	void syncReadTest();
+	QByteArray Read_sync();
 
 private slots:
-    void DataArrived();
-	void testHandlerFn();
+    void Read_async();
 
 private:
-    QSerialPort * _serialPort;
-    QString _portname;
+    QSerialPort _serialPort;
+	int port_timeout = 5000;
 };
 
 #endif // GPIB_COMMS_H
