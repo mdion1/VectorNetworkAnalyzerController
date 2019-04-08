@@ -9,8 +9,8 @@ Set up measurement as you would with the front panel keys
 -Select Meas. format ("Format" -> "PHASE" or "LIN MAG" or "LOG MAG", "PHASE UNIT DEG")
 -Marker readout ? ("Utility" -> "smth/polar menu" -> "LIN MAG PHASE")
 
-"NA"			network analyzer
-"MEAS AB"		input port A/B
+!! "NA"			network analyzer
+!! "MEAS AB"		input port A/B
 "FMT LINM"		format linear mag
 "FMT PHASE"		format phase
 "PHAU DEG"		phase unit degrees
@@ -23,23 +23,43 @@ Set up measurement as you would with the front panel keys
 "AVERFACT <numeric>"	averaging factor
 
 "SWETAUTO {ON|OFF}"	sweep time auto/manual
-"POIN <numeric>"	number of points
-"SWPT LOGF"		sweep time log freq
+
+
 
 source
-"POWE <numeric>"	source power
-"CWFREQ <numeric>"	??
+!! "POWE <numeric>"	source power, in dBm
+	0dBm = 100mW = 316.180mV amp = 223.607Vrms
+	P(W) = V^2 / (50 Ohms)
+	P(dBm) = 10 * log(P)
+	may need to round to the nearest 0.1d	B
 
 trigger
 "TRGS MAN"		manual trigger
-"CONT"			continuous ?
-"SING"			single ?
-"STAR <numeric>"	start ?
-"STOP <numeric>"	stop ?
+
+
+!! "STAR <numeric>HZ"	sets start val for sweep
+!! "STOP <numeric>HZ"	sets stop val for sweep
+!! "POIN <numeric>"	number of points (2 to 801)
+!! "SWPT LOGF"		sweep time log freq
+!! "SING"		executes a single trigger
 
 "CIRF LIN"		smith/pol menu -> lin mag phase
 
 "OUTPMKR?"		output marker value
 
-"FORM3"			64-bit float
-"OUTPDATA?"	
+!! "FORM3"		Data transferred as 64-bit floats
+!! "FORM4"		Data transferred as ASCII chars
+
+"OUTPDATA?"
+!! "OUTPRAW{1-4}?"	Outputs the uncorrected data arrays for the active channel
+
+"*STB?"	reads the status byte register
+!! "ESB?" returns Instrument event status register contents
+	Need to read bit 0 of "Event Status Register B(ESB)", which means SING, NUMG, or Cal std complete
+
+
+
+
+
+
+
