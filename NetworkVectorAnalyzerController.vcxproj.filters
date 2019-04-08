@@ -36,6 +36,9 @@
     <ClCompile Include="simpleSquidstatComms.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="experimentRunner.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <QtMoc Include="gpib_comms.h">
@@ -44,5 +47,10 @@
     <QtMoc Include="simpleSquidstatComms.h">
       <Filter>Header Files</Filter>
     </QtMoc>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="experimentRunner.h">
+      <Filter>Generated Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

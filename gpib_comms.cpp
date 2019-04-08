@@ -19,6 +19,12 @@ QByteArray GPIB_comms::Read_sync()
 	return _serialPort.readAll();
 }
 
+void GPIB_comms::writeToInstr(QString msg)
+{
+	//	msg.append("\r\n"); //todo: figure out if "\r\n" is needed
+	_serialPort.write(msg.toUtf8());
+}
+
 void GPIB_comms::writeToInstr(const char * msg)
 {
     int strLen = 0;
@@ -28,7 +34,7 @@ void GPIB_comms::writeToInstr(const char * msg)
     }
     _serialPort.write(msg, strLen);
 
-	_serialPort.write("\r\n");
+	//_serialPort.write("\r\n");		//todo: determine if "\r\n" is needed
 }
 
 void GPIB_comms::Read_async()

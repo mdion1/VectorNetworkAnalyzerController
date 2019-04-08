@@ -1,0 +1,6 @@
+AC_CAL_MODE,6
+VoltageAmplitude,0.1
+StartingFreq,1995262.3
+EndingFreq,100
+NumPoints,44
+AveragingNum,10

@@ -66,7 +66,7 @@
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
-      <AdditionalIncludeDirectories>GeneratedFiles\$(ConfigurationName);GeneratedFiles;.;$(QTDIR)\include;$(QTDIR)\include\QtSerialPort;$(QTDIR)\include\QtCore;release;$(QTDIR)\mkspecs\win32-msvc2015;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>GeneratedFiles\$(ConfigurationName);GeneratedFiles;.;$(QTDIR)\include;$(QTDIR)\include\QtSerialPort;$(QTDIR)\include\QtCore;release;$(QTDIR)\mkspecs\win32-msvc2015;qtcsv-out\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>-Zc:strictStrings -Zc:throwingNew -w34100 -w34189 -w44996 -w44456 -w44457 -w44458 %(AdditionalOptions)</AdditionalOptions>
       <AssemblerListingLocation>release\</AssemblerListingLocation>
       <BrowseInformation>false</BrowseInformation>
@@ -86,7 +86,7 @@
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>$(QTDIR)\lib\Qt5SerialPort.lib;$(QTDIR)\lib\Qt5Core.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>$(QTDIR)\lib\Qt5SerialPort.lib;$(QTDIR)\lib\Qt5Core.lib;qtcsv-out\lib-release\qtcsv.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(QTDIR)\lib;$(QTDIR)\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalOptions>"/MANIFESTDEPENDENCY:type='win32' name='Microsoft.Windows.Common-Controls' version='6.0.0.0' publicKeyToken='6595b64144ccf1df' language='*' processorArchitecture='*'" %(AdditionalOptions)</AdditionalOptions>
       <DataExecutionPrevention>true</DataExecutionPrevention>
@@ -110,15 +110,18 @@
       <QTDIR>$(QTDIR)</QTDIR>
       <InputFile>%(FullPath)</InputFile>
       <OutputFile>$(Configuration)\moc_%(Filename).cpp</OutputFile>
-      <IncludePath>GeneratedFiles\$(ConfigurationName);GeneratedFiles;$(QTDIR)\mkspecs/$(Platform)-msvc2015;.;$(QTDIR)\include;$(QTDIR)\include/QtSerialPort;$(QTDIR)\include/QtCore</IncludePath>
+      <IncludePath>GeneratedFiles\$(ConfigurationName);GeneratedFiles;.;$(QTDIR)\include;$(QTDIR)\include\QtSerialPort;$(QTDIR)\include\QtCore;release;$(QTDIR)\mkspecs\win32-msvc2015;qtcsv-out\include;%(AdditionalIncludeDirectories)</IncludePath>
       <Define>UNICODE;$(Platform);QT_NO_DEBUG;QT_SERIALPORT_LIB;QT_CORE_LIB;_MSC_VER=1900;_$(Platform)</Define>
       <ExecutionDescription>Moc'ing %(Identity)...</ExecutionDescription>
       <DynamicSource>output</DynamicSource>
     </QtMoc>
+    <PostBuildEvent>
+      <Command>copy qtcsv-out\lib-release\qtcsv.dll $(OutDir)</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
-      <AdditionalIncludeDirectories>GeneratedFiles\$(ConfigurationName);GeneratedFiles;.;$(QTDIR)\include;$(QTDIR)\include\QtSerialPort;$(QTDIR)\include\QtCore;debug;$(QTDIR)\mkspecs\win32-msvc2015;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>GeneratedFiles\$(ConfigurationName);GeneratedFiles;.;$(QTDIR)\include;$(QTDIR)\include\QtSerialPort;$(QTDIR)\include\QtCore;debug;$(QTDIR)\mkspecs\win32-msvc2015;qtcsv-out\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>-Zc:strictStrings -Zc:throwingNew -w34100 -w34189 -w44996 -w44456 -w44457 -w44458 %(AdditionalOptions)</AdditionalOptions>
       <AssemblerListingLocation>debug\</AssemblerListingLocation>
       <BrowseInformation>false</BrowseInformation>
@@ -138,7 +141,7 @@
       <ProgramDataBaseFileName>$(IntDir)vc$(PlatformToolsetVersion).pdb</ProgramDataBaseFileName>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>$(QTDIR)\lib\Qt5SerialPortd.lib;$(QTDIR)\lib\Qt5Cored.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>$(QTDIR)\lib\Qt5SerialPortd.lib;$(QTDIR)\lib\Qt5Cored.lib;qtcsv-out\lib-debug\qtcsv.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(QTDIR)\lib;$(QTDIR)\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalOptions>"/MANIFESTDEPENDENCY:type='win32' name='Microsoft.Windows.Common-Controls' version='6.0.0.0' publicKeyToken='6595b64144ccf1df' language='*' processorArchitecture='*'" %(AdditionalOptions)</AdditionalOptions>
       <DataExecutionPrevention>true</DataExecutionPrevention>
@@ -161,13 +164,17 @@
       <QTDIR>$(QTDIR)</QTDIR>
       <InputFile>%(FullPath)</InputFile>
       <OutputFile>$(Configuration)\moc_%(Filename).cpp</OutputFile>
-      <IncludePath>GeneratedFiles\$(ConfigurationName);GeneratedFiles;$(QTDIR)\mkspecs/$(Platform)-msvc2015;.;$(QTDIR)\include;$(QTDIR)\include/QtSerialPort;$(QTDIR)\include/QtCore</IncludePath>
+      <IncludePath>GeneratedFiles\$(ConfigurationName);GeneratedFiles;.;$(QTDIR)\include;$(QTDIR)\include\QtSerialPort;$(QTDIR)\include\QtCore;debug;$(QTDIR)\mkspecs\win32-msvc2015;qtcsv-out\include;%(AdditionalIncludeDirectories)</IncludePath>
       <Define>UNICODE;$(Platform);QT_SERIALPORT_LIB;QT_CORE_LIB;_MSC_VER=1900;_$(Platform)</Define>
       <ExecutionDescription>Moc'ing %(Identity)...</ExecutionDescription>
       <DynamicSource>output</DynamicSource>
     </QtMoc>
+    <PostBuildEvent>
+      <Command>copy qtcsv-out\lib-debug\qtcsv.dll $(OutDir)</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="experimentRunner.cpp" />
     <ClCompile Include="gpib_comms.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="simpleSquidstatComms.cpp" />
@@ -183,6 +190,9 @@
       <IncludePath Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">.\GeneratedFiles\$(ConfigurationName);.\GeneratedFiles;.;$(QTDIR)\include;$(QTDIR)\include\QtSerialPort;$(QTDIR)\include\QtCore;.\release;$(QTDIR)\mkspecs\win32-msvc2015</IncludePath>
       <Define Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">_CONSOLE;UNICODE;WIN32;QT_NO_DEBUG;QT_SERIALPORT_LIB;QT_CORE_LIB;NDEBUG;%(PreprocessorDefinitions)</Define>
     </QtMoc>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="experimentRunner.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Condition="Exists('$(QtMsBuild)\qt.targets')">

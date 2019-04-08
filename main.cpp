@@ -1,20 +1,29 @@
 #include <QCoreApplication>
-#include "gpib_comms.h"
-#include "simpleSquidstatComms.h"
+#include "experimentRunner.h"
 
 int main(int argc, char *argv[])
 {
-    QCoreApplication a(argc, argv);
+	QCoreApplication a(argc, argv);
 
-    GPIB_comms instr;
-    instr.setup("COM15");
-	instr.writeToInstr("R0T1X");
-	qDebug() <<	instr.Read_sync();
+	experimentRunner experiment;
+	if (argc == 4)
+	{
+		experiment.connectSquidstat(argv[1]);
+		experiment.connectVNAnalyzer(argv[2]);
+		experiment.setupExperiment(argv[3]);
+	}
+	else if (argc == 5)
+	{
+		experiment.connectSquidstat(argv[1]);
+		experiment.connectVNAnalyzer(argv[2]);
+		experiment.setupExperiment(argv[3], argv[4]);
+	}
+	else
+		return -1;
 
-	simpleSquidstatComms squidstat;
-	squidstat.setup("COM8");
+	experiment.runExperiment();
 
 	system("pause");
-	return 0;
-    //return a.exec();
+	a.exit(0);
+    return a.exec();
 }

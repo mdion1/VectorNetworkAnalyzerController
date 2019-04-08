@@ -10,6 +10,7 @@ class GPIB_comms : QObject
 public:
 	void setup(QString portname);
     void writeToInstr(const char * msg);
+	void writeToInstr(QString msg);
 	QByteArray Read_sync();
 
 private slots:
