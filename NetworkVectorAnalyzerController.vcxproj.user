@@ -2,7 +2,7 @@
 <Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <QTDIR>C:\Qt\Qt5.6.3\5.6.3\msvc2015</QTDIR>
-    <LocalDebuggerCommandArguments>COM8 COM5 "C:\Users\Matt Dion\mdion1.github.com\NetworkVectorAnalyzerController\sweepParamsTestFile.csv"</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>COM8 COM15 "C:\Users\Matt Dion\mdion1.github.com\NetworkVectorAnalyzerController\sweepParamsTestFile.csv" "C:\Users\Matt Dion\mdion1.github.com\NetworkVectorAnalyzerController\testResults.csv"</LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
     <LocalDebuggerEnvironment>PATH=$(QTDIR)\bin%3b$(PATH)</LocalDebuggerEnvironment>
   </PropertyGroup>

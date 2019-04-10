@@ -14,12 +14,15 @@ struct CommandPacket {
 #pragma pack(pop)
 
 
-class simpleSquidstatComms : QObject
+class simpleSquidstatComms : public QObject
 {
     Q_OBJECT
 public:
 	void setup(QString portname);
 	void send_AC_cal_mode_cmd(uint8_t calmode);
+
+private slots:
+	void handleBytesWritten(qint64 bytes);
 
 private:
 	void sendMessage(PCcommand_t command, int channel, const QByteArray &data);

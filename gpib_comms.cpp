@@ -7,10 +7,21 @@ void GPIB_comms::setup(QString portname)
 	_serialPort.open(QIODevice::ReadWrite);
 
 	/* For asynchronous port operation, uncomment the following line */
-	//connect(_serialPort, &QSerialPort::readyRead, this, &GPIB_comms::DataArrived, Qt::QueuedConnection);
+	//connect(&_serialPort, &QSerialPort::readyRead, this, &GPIB_comms::Read_async, Qt::QueuedConnection);
+	//connect(&_serialPort, &QSerialPort::bytesWritten, this, &GPIB_comms::handleBytesWritten, Qt::QueuedConnection);
+	connect(&_serialPort, static_cast<void (QSerialPort::*)(QSerialPort::SerialPortError)>(&QSerialPort::error), this, &GPIB_comms::handleError);
 
-	/* setup VNA settings */
+	writeToInstr("++addr 16");
+}
 
+void GPIB_comms::handleBytesWritten(qint64 bytes)
+{
+	qDebug() << "bytes written: " << bytes;
+}
+
+void GPIB_comms::handleError(QSerialPort::SerialPortError serialPortError)
+{
+	qDebug() << "error: " << (int)serialPortError;
 }
 
 QByteArray GPIB_comms::Read_sync()
@@ -21,7 +32,7 @@ QByteArray GPIB_comms::Read_sync()
 
 void GPIB_comms::writeToInstr(QString msg)
 {
-	//	msg.append("\r\n"); //todo: figure out if "\r\n" is needed
+	msg.append("\r");
 	_serialPort.write(msg.toUtf8());
 }
 
@@ -33,8 +44,7 @@ void GPIB_comms::writeToInstr(const char * msg)
         strLen++;
     }
     _serialPort.write(msg, strLen);
-
-	//_serialPort.write("\r\n");		//todo: determine if "\r\n" is needed
+	_serialPort.write("\r");
 }
 
 void GPIB_comms::Read_async()

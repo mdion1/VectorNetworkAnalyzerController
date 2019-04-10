@@ -15,6 +15,7 @@ void simpleSquidstatComms::setup(QString portname)
 	else
 		qDebug() << "Connection error with Squidstat";
 
+	//connect(&_serialPort, &QSerialPort::bytesWritten, this, &simpleSquidstatComms::handleBytesWritten);
 }
 
 void simpleSquidstatComms::send_AC_cal_mode_cmd(uint8_t calmode)
@@ -34,4 +35,9 @@ void simpleSquidstatComms::sendMessage(PCcommand_t command, int channel, const Q
 	memcpy(pack->data, data.data(), data.size());
 
 	_serialPort.write(toSend);
+}
+
+void simpleSquidstatComms::handleBytesWritten(qint64 bytes)
+{
+	qDebug() << "bytes written:" << bytes;
 }

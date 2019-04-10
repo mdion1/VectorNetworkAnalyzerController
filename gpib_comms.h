@@ -4,7 +4,7 @@
 #include <QSerialPort>
 #include <QDebug>
 
-class GPIB_comms : QObject
+class GPIB_comms : public QObject
 {
     Q_OBJECT
 public:
@@ -15,10 +15,12 @@ public:
 
 private slots:
     void Read_async();
+	void handleBytesWritten(qint64 bytes);
+	void handleError(QSerialPort::SerialPortError serialPortError);
 
 private:
     QSerialPort _serialPort;
-	int port_timeout = 5000;
+	int port_timeout = 2000;
 };
 
 #endif // GPIB_COMMS_H

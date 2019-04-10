@@ -31,6 +31,8 @@ public:
 	void connectVNAnalyzer(const char * squidstatComport);
 	void connectSquidstat(const char * squidstatComport);
 
+	void testFunction();
+
 private:
 	QMap<QString, QString> experimentParams;
 	QFile * outputFile = nullptr;
@@ -38,7 +40,8 @@ private:
 	GPIB_comms VNAnalyzer;
 	QList<double> getFreqList(int listMinLength);
 	QList<complexNum> normalizeListToLastPoint(QList<complexNum> raw);
-	static QList<double> parseRawBytes(QByteArray raw, bool reverseEndianness = false);
+	void reverseList(QList<complexNum> &list);
+	static QList<double> parseRawBytes(QByteArray raw, bool reverseEndianness = true);
 	static QList<complexNum> NumListToComplexNumList(QList<double> raw);
 	static double convertVoltsToDBM(double volts);
 };
