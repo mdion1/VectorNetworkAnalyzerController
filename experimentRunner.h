@@ -39,8 +39,9 @@ private:
 	simpleSquidstatComms squidstat;
 	GPIB_comms VNAnalyzer;
 	QList<double> getFreqList(int listMinLength);
-	QList<complexNum> normalizeListToLastPoint(QList<complexNum> raw);
+	void normalizeListToLastPoint(QList<complexNum> &data);
 	void reverseList(QList<complexNum> &list);
+	QList<complexNum> averageList(QList<QList<complexNum>> &masterList);
 	static QList<double> parseRawBytes(QByteArray raw, bool reverseEndianness = true);
 	static QList<complexNum> NumListToComplexNumList(QList<double> raw);
 	static double convertVoltsToDBM(double volts);

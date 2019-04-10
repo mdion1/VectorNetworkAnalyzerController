@@ -34,6 +34,7 @@ void GPIB_comms::writeToInstr(QString msg)
 {
 	msg.append("\r");
 	_serialPort.write(msg.toUtf8());
+	_serialPort.waitForBytesWritten(-1);
 }
 
 void GPIB_comms::writeToInstr(const char * msg)
@@ -45,6 +46,7 @@ void GPIB_comms::writeToInstr(const char * msg)
     }
     _serialPort.write(msg, strLen);
 	_serialPort.write("\r");
+	_serialPort.waitForBytesWritten(-1);
 }
 
 void GPIB_comms::Read_async()

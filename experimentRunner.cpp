@@ -42,6 +42,9 @@ void experimentRunner::runExperiment()
 	VNAnalyzer.writeToInstr(QString("*IDN?"));
 	qDebug() << VNAnalyzer.Read_sync();
 
+	VNAnalyzer.writeToInstr("HOLD");		//takes instrument out of free-run mode
+
+
 	VNAnalyzer.writeToInstr("FORM3");		//sets data output mode to 64-bit double
 	VNAnalyzer.writeToInstr("NA");	//set network analyzer mode
 	//VNAnalyzer.writeToInstr("NA?");
@@ -59,11 +62,12 @@ void experimentRunner::runExperiment()
 
 	VNAnalyzer.writeToInstr(QString("STAR ") + experimentParams[KEY_STARTING_FREQ] + QString("HZ"));		//set sweep starting frequency in Hz
 	VNAnalyzer.writeToInstr(QString("STOP ") + experimentParams[KEY_ENDING_FREQ] + QString("HZ"));			//set sweep ending frequency in Hz
-	VNAnalyzer.writeToInstr(QString("POINT ") + experimentParams[KEY_NUM_POINTS]);							//set number of points swept
+	VNAnalyzer.writeToInstr(QString("POIN ") + experimentParams[KEY_NUM_POINTS]);							//set number of points swept
 	
 	/* set up sample averaging */
-	VNAnalyzer.writeToInstr("AVER 1");
-	VNAnalyzer.writeToInstr(QString("AVERFACT ") + experimentParams[KEY_AVERAGING_NUM]);
+	VNAnalyzer.writeToInstr("AVER 1");			//turns on sample averaging
+	VNAnalyzer.writeToInstr("AVERREST");		//resets the averaging calculations
+	VNAnalyzer.writeToInstr(QString("AVERFACT ") + experimentParams[KEY_AVERAGING_NUM]);		//specifies the number of samples to average
 
 	/* set up signal strength */
 	double amp_dBm = convertVoltsToDBM(experimentParams[KEY_VOLTAGE_AMPLITUDE].toDouble());
@@ -71,43 +75,83 @@ void experimentRunner::runExperiment()
 	amp_dBm_str.setNum(amp_dBm, 'f', 1);
 	VNAnalyzer.writeToInstr(QString("POWE ") + amp_dBm_str);
 
-	/* trigger sweep */
-	VNAnalyzer.writeToInstr("SING");										//trigger single sweep
+//#define MANUAL_AVERAGING
+#ifdef MANUAL_AVERAGING
+	QList<QList<experimentRunner::complexNum>> dataMasterList;
+	for (int i = 0; i < experimentParams[KEY_AVERAGING_NUM].toInt(); i++)
+	{
+		/* trigger sweep */
+		VNAnalyzer.writeToInstr("SING");										//trigger single sweep
 
+		/* Wait for sweep to complete */
+		do
+		{
+			/* Read Event Status Register B, bit 0, to detect sweep completion */
+			VNAnalyzer.writeToInstr("ESB?");
+			if (VNAnalyzer.Read_sync() == "+1\n")
+				break;
+			_sleep(25);
+		} while (true);
+
+		/* Read out values to array */
+		VNAnalyzer.writeToInstr("OUTPRAW1?");
+		auto resp = VNAnalyzer.Read_sync();
+		resp.remove(0, 8); resp.remove(resp.count() - 1, 1);
+		auto numList = parseRawBytes(resp);
+		auto pointList = NumListToComplexNumList(numList);
+		
+		dataMasterList << pointList;
+	}
+
+	/* Average, reverse, and normalize values */
+	auto avgData = averageList(dataMasterList);
+	reverseList(avgData);
+	normalizeListToLastPoint(avgData);
+	auto freqList = getFreqList(avgData.count());
+
+	/* Write values to output file */
+	if (outputFile)
+	{
+		if (outputFile->open(QIODevice::WriteOnly))
+		{
+			QTextStream out(outputFile);
+			out.setRealNumberPrecision(12);
+			out << "Frequency,Mag,Phase\r\n";
+			for (int i = 0; i < avgData.count(); i++)
+			{
+				out << freqList[i];			out << ",";
+				out << avgData[i].mag;		out << ",";
+				out << avgData[i].phase;	out << "\r\n";
+			}
+			outputFile->close();
+		}
+	}
+
+#else
+	/* trigger sweeps */
+	VNAnalyzer.writeToInstr(QString("NUMG ") + experimentParams[KEY_AVERAGING_NUM]);										//triggers multiple sweeps before returning to hold mode
+	
 	/* Wait for sweep to complete */
 	do
 	{
 		/* Read Event Status Register B, bit 0, to detect sweep completion */
 		VNAnalyzer.writeToInstr("ESB?");
-		auto resp = VNAnalyzer.Read_sync();
-		if (resp == "+1\n")
+		if (VNAnalyzer.Read_sync() == "+1\n")
 			break;
-		//auto x = VNAnalyzer.Read_sync();
-		//x.remove(0, 1);
-		//int statusReg = x.toInt();//int statusReg = VNAnalyzer.Read_sync().toInt();
-		//if (statusReg & 1)
-		//	break;
 		_sleep(25);
 	} while (true);
 
-	/* Print out values */
-	//VNAnalyzer.writeToInstr("FORM4");
-	//VNAnalyzer.writeToInstr("OUTPRAW1?");
-	//qDebug() << VNAnalyzer.Read_sync();
-
 	/* Read out values to array */
-	VNAnalyzer.writeToInstr("OUTPRAW1?");
-
+	VNAnalyzer.writeToInstr("OUTPDATA?");
 	auto resp = VNAnalyzer.Read_sync();
-	//qDebug() << resp;
 	resp.remove(0, 8); resp.remove(resp.count() - 1, 1);
 	auto numList = parseRawBytes(resp);
 	auto pointList = NumListToComplexNumList(numList);
-	auto freqList = getFreqList(pointList.count());
 
-	/* Reverse and normalize values */
+	/* Average, reverse, and normalize values */
 	reverseList(pointList);
-	pointList = normalizeListToLastPoint(pointList);
+	normalizeListToLastPoint(pointList);
+	auto freqList = getFreqList(pointList.count());
 
 	/* Write values to output file */
 	if (outputFile)
@@ -126,6 +170,30 @@ void experimentRunner::runExperiment()
 			outputFile->close();
 		}
 	}
+
+#endif
+}
+
+QList<experimentRunner::complexNum> experimentRunner::averageList(QList<QList<experimentRunner::complexNum>> &masterList)
+{
+	QList<experimentRunner::complexNum> ret;
+	int N = masterList.count();
+	
+	for (int i = 0; i < masterList.first().count(); i++)
+	{
+		experimentRunner::complexNum sum = { 0, 0, 0, 0 };
+		for (int j = 0; j < N; j++)
+		{
+			sum.mag += masterList[j][i].mag;
+			sum.phase += masterList[j][i].phase;
+		}
+		sum.mag /= N;
+		sum.phase /= N;
+		sum.real = sum.mag * cos(sum.phase * 3.14159265358979323846264338327950288 / 180);
+		sum.imag = sum.mag * sin(sum.phase * 3.14159265358979323846264338327950288 / 180);
+		ret << sum;
+	}
+	return ret;
 }
 
 void experimentRunner::reverseList(QList<experimentRunner::complexNum> &list)
@@ -133,22 +201,19 @@ void experimentRunner::reverseList(QList<experimentRunner::complexNum> &list)
 	for (int k = 0; k < (list.size() / 2); k++) list.swap(k, list.size() - (1 + k));
 }
 
-QList<experimentRunner::complexNum> experimentRunner::normalizeListToLastPoint(QList<experimentRunner::complexNum> raw)
+void experimentRunner::normalizeListToLastPoint(QList<experimentRunner::complexNum> &data)
 {
-	QList<experimentRunner::complexNum> ret;
 	experimentRunner::complexNum baseline;
-	baseline.mag = raw.last().mag;
-	baseline.phase = raw.last().phase;
-	for (int i = 0; i < raw.count(); i++)
+	baseline.mag = data.last().mag;
+	baseline.phase = data.last().phase;
+	for (int i = 0; i < data.count(); i++)
 	{
 		experimentRunner::complexNum x;
-		x.mag = raw[i].mag / baseline.mag;
-		x.phase = raw[i].phase - baseline.phase;
-		x.real = x.mag * cos(x.phase * 3.14159265358979323846264338327950288 / 180);
-		x.imag = x.mag * sin(x.phase * 3.14159265358979323846264338327950288 / 180);
-		ret.append(x);
+		data[i].mag /= baseline.mag;
+		data[i].phase -= baseline.phase;
+		data[i].real = data[i].mag * cos(data[i].phase * 3.14159265358979323846264338327950288 / 180);
+		data[i].imag = data[i].mag * sin(data[i].phase * 3.14159265358979323846264338327950288 / 180);
 	}
-	return ret;
 }
 
 QList<double> experimentRunner::parseRawBytes(QByteArray raw, bool reverseEndianness)

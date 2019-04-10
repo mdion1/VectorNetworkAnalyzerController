@@ -35,6 +35,7 @@ void simpleSquidstatComms::sendMessage(PCcommand_t command, int channel, const Q
 	memcpy(pack->data, data.data(), data.size());
 
 	_serialPort.write(toSend);
+	_serialPort.waitForBytesWritten(-1);
 }
 
 void simpleSquidstatComms::handleBytesWritten(qint64 bytes)
