@@ -8,6 +8,8 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <QTDIR>C:\Qt\Qt5.6.3\5.6.3\msvc2015</QTDIR>
+    <LocalDebuggerCommandArguments>COM8 COM15 "C:\picoscope_experiments\VNA_runs\TIA_stage1setting1.csv" "C:\Users\Matt Dion\Dropbox\Admiral Instruments Dropbox\Squidstat customer records\Plus1136/TIA_stage1setting1raw.csv"</LocalDebuggerCommandArguments>
+    <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
     <LocalDebuggerEnvironment>PATH=$(QTDIR)\bin%3b$(PATH)</LocalDebuggerEnvironment>
   </PropertyGroup>
 </Project>

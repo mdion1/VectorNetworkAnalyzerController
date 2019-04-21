@@ -45,5 +45,7 @@ private:
 	static QList<double> parseRawBytes(QByteArray raw, bool reverseEndianness = true);
 	static QList<complexNum> NumListToComplexNumList(QList<double> raw);
 	static double convertVoltsToDBM(double volts);
+	void waitForDataReady();
+	void getBWLIM();
 };
 
