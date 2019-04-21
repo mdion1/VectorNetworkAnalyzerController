@@ -19,8 +19,18 @@ class experiment:
         self.setup()
 
     def setup(self):
-        self.VNA.setup_basline_settings()
-        self.VNA.setSweepType(sweeptype = 'frequency', start = '100', stop = '1000', numPoints = '10')
+        self.Squid.ac_cal_mode(self.paramsReader.getParam('AC_CAL_MODE'))
+        self.VNA.setup_basline_settings() 
+        #self.VNA.setSweepType(sweeptype = self.paramsReader.getParam('sweepType'),
+        #                      start = self.paramsReader.getParam('sweepStart'),
+        #                      stop = self.paramsReader.getParam('sweepStop'),
+        #                      numPoints = self.paramsReader.getParam('sweepNumPoints'),
+        #                      signalStrength = self.paramsReader.getParam('signalStrength'),
+        #                      centerFreq = self.paramsReader.getParam('sweepCenterFreq'))
+        self.VNA.setAverNum(self.paramsReader.getParam('AveragingNum'))
         
-        #self.VNA.setSweepType(self.paramsReader.getParam('sweepType'))
-        
+    def runExperiment(self):
+        #trigger sweeps
+        self.VNA.trigSweeps('10') #self.VNA.trigSweeps(self.paramsReader.getParam('AveragingNum'))
+        self.VNA.waitForDataReady()
+        print("done")

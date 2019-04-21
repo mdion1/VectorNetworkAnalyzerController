@@ -19,13 +19,14 @@ class VNA_ctrl:
         self.write('BWAUTO 0')     #turn off automatic IF BW selection
         self.write('AVER 1')       #turns on sample averaging
 
-    def setSweepType(self, sweeptype, start, stop, numPoints, signalStrength = '0.01'):
+    def setSweepType(self, sweeptype, start, stop, numPoints, signalStrength, centerFreq):
         if sweeptype == 'frequency':
             self.write('POWE ' + convertVoltsToDBM(signalStrength))      #set the input signal strength
             self.write('SWPT LOGF')                 #set sweep type to log frequency
             self.write('STAR ' + start + 'HZ')      #set sweep start
             self.write('STOP ' + stop + 'HZ')       #set sweep end
         elif sweeptype == 'power':
+            self.write('???')                       #todo: set center frequency
             self.write('???')                       #todo: set sweep type to power
             self.write('STAR ' + start + 'DB')      #set sweep start
             self.write('STOP ' + stop + 'DB')       #set sweep end
@@ -35,6 +36,17 @@ class VNA_ctrl:
 
     def setAverNum(self, averageNum):
         self.write('AVERFACT ' + averageNum)
+
+    def trigSweeps(self, numSweeps):
+        self.write('NUMG ' + numSweeps)
+
+    def waitForDataReady(self):
+        while True:
+            self.write('ESB?')
+            resp = self.read()
+            if len(resp) >= 3:
+                if resp[1] == 0x31:     # 0x31 is ASCII '1'
+                    break
 
     def write(self, msg):
         if msg[-1] != '\n':

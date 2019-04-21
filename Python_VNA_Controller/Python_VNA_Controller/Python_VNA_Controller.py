@@ -11,4 +11,4 @@ Squidstat = Squidstat_ctrl(sys.argv[1])
 Squidstat.ac_cal_mode(6)
 VNA = VNA_ctrl(sys.argv[2])
 exp = experiment(sys.argv[3], VNA, Squidstat)
-
+exp.runExperiment()

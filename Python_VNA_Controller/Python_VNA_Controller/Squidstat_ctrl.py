@@ -29,5 +29,6 @@ class Squidstat_ctrl:
         return x
 
     def ac_cal_mode(self, calmode):
-        command = [0xEE, 0xFF, calmode, 0x00, 0x00, 0x00]
+        calmode_int = int(calmode)
+        command = [0xEE, 0xFF, calmode_int, 0x00, 0x00, 0x00]
         self.write(command)
