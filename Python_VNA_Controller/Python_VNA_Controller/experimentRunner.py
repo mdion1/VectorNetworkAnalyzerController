@@ -1,4 +1,5 @@
 import csv
+import cmath
 
 class experimentParamsReader:
     def __init__(self, filename):
@@ -9,16 +10,20 @@ class experimentParamsReader:
                 self.masterDictionary[row[0]] = row[1]
 
     def getParam(self, param):
-        return self.masterDictionary[param]
+        if param in self.masterDictionary:
+            return self.masterDictionary[param]
+        else:
+            return ''
 
 class dataWriter:
     def __init__(self, filename):
-        with open(filename) as csv_file:
-            self.csv_writer = csv.writer(csv_file, delimiter=',')
+        self._filename = filename
     def writeData(self, dataList, headerList):
-        self.csv_writer.writerow(headerList)
-        for subList in dataList:
-            self.csv_writer.writerow(subList)
+        with open(self._filename, mode = 'w') as csv_file:
+            self.csv_writer = csv.writer(csv_file, delimiter=',')
+            self.csv_writer.writerow(headerList)
+            for i in range(0, len(dataList)):
+                self.csv_writer.writerow(dataList[i])
 
 class experiment:
     def __init__(self, paramsFile, VNAobj, SquidstatObj):
@@ -32,9 +37,9 @@ class experiment:
         self.VNA.setup_basline_settings() 
         self.VNA.setSweepType(sweeptype = self.paramsReader.getParam('sweepType'),
                               start = self.paramsReader.getParam('sweepStart'),
-                              stop = self.paramsReader.getParam('sweepStop'),
-                              numPoints = self.paramsReader.getParam('sweepNumPoints'),
-                              signalStrength = self.paramsReader.getParam('signalStrength'),
+                              stop = self.paramsReader.getParam('sweepEnd'),
+                              numPoints = self.paramsReader.getParam('NumPoints'),
+                              signalStrength = self.paramsReader.getParam('VoltageAmplitude'),
                               centerFreq = self.paramsReader.getParam('sweepCenterFreq'))
         self.VNA.setAverNum(self.paramsReader.getParam('AveragingNum'))
         
@@ -42,42 +47,64 @@ class experiment:
         #trigger sweeps
         self.VNA.trigSweeps(self.paramsReader.getParam('AveragingNum'))
         self.VNA.waitForDataReady()
-        ydata = self.VNA.downloadData()
+        #get data
+        rawdata = self.VNA.downloadData(self.paramsReader.getParam('NumPoints'))
         xdata = []
-        if (self.paramsReader.getParam('sweepType') == 'frequency'):
-            xdata = getLinearList()
+        ret = []
+        start = self.paramsReader.getParam('sweepStart')
+        stop = self.paramsReader.getParam('sweepEnd')
+        numPoints = self.paramsReader.getParam('NumPoints')
+        if (self.paramsReader.getParam('sweepType') == 'power'):
+            xdata = getLinearList(float(start), float(stop), int(numPoints))
+            ret = getNormalizedPolarData(xdata, rawdata)
+            #todo: finish handling power sweep data
         else:
-            xdata = getLogList()
-        return getDataMasterList(xdata, ydata)
+            xdata = getLogList(float(start), float(stop), int(numPoints))
+            ret = getNormalizedPolarData(xdata, rawdata)
+        return ret
 
 def getLinearList(start, end, points):
     span = end - start
     delta = span / (points - 1)
     linList = []
-    for i in range(0, points - 1):
-        linList[i] = start + i * delta
+    for i in range(0, points):
+        linList.append(start + i * delta)
     return linList
 
 
-def getLogList(start, end, points):
+def getLogList(start: float, end: float, points: int):
     span = end / start
     delta = span ** (1 / (points - 1))
     logList = []
-    for i in range(0, points - 1):
-        logList[i] = start * (delta ** i)
+    for i in range(0, points):
+        logList.append(start * (delta ** i))
+    return logList
 
-def getDataMasterList(xlist, ylist : list[complex]):
-    masterList = [[]]
-    for i in range(0, len(xlist) - 1):
-        masterList[i][0] = xlist[i]
-        masterList[i][1] = abs(ylist[i])
-        masterList[i][2] = cmath.phase(yList[i]) * 180 / cmath.pi
-    return masterList
+def getNormalizedPolarData(xdata, ydata):
+    masterList = []
+    phaseList = []
+    magList = []
+    #parse ydata list for complex pairs
+    for i in range(0, len(ydata), 2):
+        a = complex(ydata[i], ydata[i+1])
+        magList.append(abs(a))
+        phaseList.append(cmath.phase(a) * 180 / cmath.pi)
 
-def getDataMasterList(xlist, ylist : list[list[float]]):
-    masterList = [[]]
-    for i in range(0, len(xlist) - 1):
-        masterList[i][0] = xlist[i]
-        for j in range(0, len(ylist[i]) - 1):
-            masterList[i][j + 1] = ylist[i][j]
+    #order sweep from lowest to highest frequence
+    magList.reverse()
+    phaseList.reverse()
+    xdata.reverse()
+
+    #normalize complex mag and phase to the last
+    for i in range(0, len(magList)):
+        magList[i] /= magList[-1]
+        phaseList[i] = phaseList[-1] - phaseList[i]
+        if phaseList[i] > 180:
+            phaseList[i] -= 360
+        if phaseList[i] <= -180:
+            phaseList[i] += 360
+
+    #combine xdata and ydata
+    for i in range(0, len(xdata)):
+        masterList.append([xdata[i], magList[i], phaseList[i]])
     return masterList

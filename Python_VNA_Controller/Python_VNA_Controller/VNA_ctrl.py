@@ -1,7 +1,7 @@
 import serial
 import math
-import cmath
 import array
+import time
 
 class VNA_ctrl:
     def __init__(self, comport):
@@ -23,8 +23,8 @@ class VNA_ctrl:
 
     def setSweepType(self, sweeptype, start, stop, numPoints, signalStrength, centerFreq):   
         if sweeptype == 'power':
-            self.write('???')                       #todo: set center frequency
-            self.write('???')                       #todo: set sweep type to power
+            self.write('CWFREQ ' + centerFreq)      #set center frequency
+            self.write('SWPT POWE')                 #set sweep type to power
             self.write('STAR ' + start + 'DB')      #set sweep start
             self.write('STOP ' + stop + 'DB')       #set sweep end
         else:                                       #default sweeptype is 'frequency'
@@ -33,8 +33,28 @@ class VNA_ctrl:
             self.write('STAR ' + start + 'HZ')      #set sweep start
             self.write('STOP ' + stop + 'HZ')       #set sweep end
         self.write('POIN ' + numPoints)
+        self.setIFBW(sweeptype, start, stop, centerFreq)
+    
+    def setIFBW(self, sweeptype, start, stop, centerFreq):
+        ifbw = ''
+        if sweeptype == 'power':
+            ifbw = self.get_IFBW_val_str((float(centerFreq)))
+        else:
+            ifbw = self.get_IFBW_val_str(min(float(start), float(stop)))
+        self.write('BW ' + ifbw)
+    
+    def get_IFBW_val_str(self, freq):
+        if freq >= 1000:
+            return '300HZ'
+        elif freq >=100:
+            return '30HZ'
+        elif freq >= 30:
+            return '10HZ'
+        else:
+            return '2HZ'
 
     def setAverNum(self, averageNum):
+        self.write('AVER 1')
         self.write('AVERFACT ' + averageNum)
 
     def trigSweeps(self, numSweeps):
@@ -50,19 +70,19 @@ class VNA_ctrl:
 
     def downloadData(self, pointsPerSweep):
         self.write('OUTPDATA?')
-        minNumBytes = 8 * 2 * pointsPerSweep + 8 + 2        # 8 bytes * 2 doubles per point + 8-byte header + 2-byte postscript
+        minNumBytes = 8 * 2 * int(pointsPerSweep) + 8 + 1        # 8 bytes * 2 doubles per point + 8-byte header + 1-byte postscript
         rawBytes = self.read(minNumBytes)
-        rawDoubles = array.array('d', rawBytes)
-        complexArray = []
-        for i in range(0, len(rawDoubles) / 2):
-            complexArray[i] = complex(rawDoubles[i * 2], rawDoubles[i * 2 + 1])
-        return complexArray
+        trimmedBytes = rawBytes[8:len(rawBytes) - 1]
+        x = array.array('d', trimmedBytes)
+        x.byteswap()
+        return x
 
     def write(self, msg):
         if msg[-1] != '\n':
             msg += '\n'
         rawBytes = msg.encode('utf-8')
         self.ser.write(rawBytes)
+        time.sleep(0.2)
 
     def read(self, maxLength = 256):
         x = self.ser.read(maxLength)

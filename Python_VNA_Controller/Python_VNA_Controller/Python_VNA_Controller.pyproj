@@ -12,7 +12,7 @@
     <Name>Python_VNA_Controller</Name>
     <RootNamespace>Python_VNA_Controller</RootNamespace>
     <LaunchProvider>Standard Python launcher</LaunchProvider>
-    <CommandLineArguments>"COM6" "COM28" "C:\picoscope_experiments\VNA_runs\control.csv"</CommandLineArguments>
+    <CommandLineArguments>COM6 COM28 "C:\picoscope_experiments\VNA_runs\powersweep__WEgain1-10.csv" "C:\Users\Matt Dion\Dropbox\Admiral Instruments Dropbox\Squidstat customer records\Plus1136/powersweep__V_inputBuffer_raw.csv"</CommandLineArguments>
     <EnableNativeCodeDebugging>False</EnableNativeCodeDebugging>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
