@@ -1,5 +1,6 @@
 import csv
 import cmath
+import math
 
 class experimentParamsReader:
     def __init__(self, filename):
@@ -7,11 +8,14 @@ class experimentParamsReader:
             csv_reader = csv.reader(csv_file, delimiter=',')
             self.masterDictionary = {};
             for row in csv_reader:
-                self.masterDictionary[row[0]] = row[1]
+                self.masterDictionary[row[0]] = row[1:]
 
     def getParam(self, param):
         if param in self.masterDictionary:
-            return self.masterDictionary[param]
+            if (param == 'sweepCenterFreq'):
+                return self.masterDictionary[param]
+            else:
+                return self.masterDictionary[param][0]
         else:
             return ''
 
@@ -30,25 +34,42 @@ class experiment:
         self.paramsReader = experimentParamsReader(paramsFile)
         self.VNA = VNAobj
         self.Squid = SquidstatObj
-        self.setup()
+        self.sweepType = self.paramsReader.getParam('sweepType')
+        if self.sweepType == 'power':
+            self.centerFrequencies = self.paramsReader.getParam('sweepCenterFreq')
+            self.centerFrequenciesIndex = 0
+        self.isExperimentComplete = False
 
     def setup(self):
         self.Squid.ac_cal_mode(self.paramsReader.getParam('AC_CAL_MODE'))
-        self.VNA.setup_basline_settings() 
-        self.VNA.setSweepType(sweeptype = self.paramsReader.getParam('sweepType'),
-                              start = self.paramsReader.getParam('sweepStart'),
-                              stop = self.paramsReader.getParam('sweepEnd'),
-                              numPoints = self.paramsReader.getParam('NumPoints'),
-                              signalStrength = self.paramsReader.getParam('VoltageAmplitude'),
-                              centerFreq = self.paramsReader.getParam('sweepCenterFreq'))
+        self.VNA.setup_basline_settings()
+        if self.sweepType == 'power':
+            self.VNA.setSweepType(sweeptype = 'power',
+                                  start = self.paramsReader.getParam('sweepStart'),
+                                  stop = self.paramsReader.getParam('sweepEnd'),
+                                  numPoints = self.paramsReader.getParam('NumPoints'),
+                                  centerFreq = self.centerFrequencies[self.centerFrequenciesIndex])
+        else:
+            self.VNA.setSweepType(sweeptype = 'frequency',
+                                  start = self.paramsReader.getParam('sweepStart'),
+                                  stop = self.paramsReader.getParam('sweepEnd'),
+                                  numPoints = self.paramsReader.getParam('NumPoints'),
+                                  signalStrength = self.paramsReader.getParam('VoltageAmplitude'))
         self.VNA.setAverNum(self.paramsReader.getParam('AveragingNum'))
         
     def runExperiment(self):
-        #trigger sweeps
-        self.VNA.trigSweeps(self.paramsReader.getParam('AveragingNum'))
+        #trigger A/B meas sweep
+        self.VNA.trigSweeps_AB(self.paramsReader.getParam('AveragingNum'))
         self.VNA.waitForDataReady()
         #get data
-        rawdata = self.VNA.downloadData(self.paramsReader.getParam('NumPoints'))
+        rawdata1 = self.VNA.downloadPolarData(self.paramsReader.getParam('NumPoints'))
+
+        #trigger B meas sweep
+        self.VNA.trigSweeps_B(self.paramsReader.getParam('AveragingNum'))
+        self.VNA.waitForDataReady()
+        #get data
+        rawdata2 = self.VNA.downloadPolarData(self.paramsReader.getParam('NumPoints'))
+        
         xdata = []
         ret = []
         start = self.paramsReader.getParam('sweepStart')
@@ -56,12 +77,31 @@ class experiment:
         numPoints = self.paramsReader.getParam('NumPoints')
         if (self.paramsReader.getParam('sweepType') == 'power'):
             xdata = getLinearList(float(start), float(stop), int(numPoints))
-            ret = getNormalizedPolarData(xdata, rawdata)
+            ret = combineData(xdata, rawdata1, rawdata2)
             #todo: finish handling power sweep data
         else:
             xdata = getLogList(float(start), float(stop), int(numPoints))
-            ret = getNormalizedPolarData(xdata, rawdata)
+            ret = combineData(xdata, rawdata, rawdata2)
+
+        #increment centerFrequenciesIndex, update isExperimentDone
+        self.centerFrequenciesIndex += 1
+        if self.centerFrequenciesIndex >= len(self.centerFrequencies):
+            self.isExperimentComplete = True
+
         return ret
+
+    def IsExperimentComplete(self):
+        return self.isExperimentComplete
+
+    def normalizeData(self, dataList):
+        for i in range(0, len(dataList)):
+            dataList[i][1] /= dataList[-1][1]
+            dataList[i][2] -= dataList[-1][2]
+            if dataList[i][2] > 180:
+                dataList[i][2] -= 360
+            if dataList[i][2] <= -180:
+                dataList[i][2] += 360
+        return dataList
 
 def getLinearList(start, end, points):
     span = end - start
@@ -80,31 +120,30 @@ def getLogList(start: float, end: float, points: int):
         logList.append(start * (delta ** i))
     return logList
 
-def getNormalizedPolarData(xdata, ydata):
+def combineData(xdata, polarData, powerData, signalB_atten = 10):
     masterList = []
     phaseList = []
     magList = []
-    #parse ydata list for complex pairs
-    for i in range(0, len(ydata), 2):
-        a = complex(ydata[i], ydata[i+1])
+    powerList = []
+    #parse polarData list for complex pairs
+    for i in range(0, len(polarData), 2):
+        a = complex(polarData[i], polarData[i+1])
         magList.append(abs(a))
         phaseList.append(cmath.phase(a) * 180 / cmath.pi)
+
+    #parse powerData list for complex pairs
+    for i in range(0, len(powerData), 2):
+        a = complex(powerData[i], powerData[i+1])
+        powerList.append(20 * math.log10(abs(a) * signalB_atten))
 
     #order sweep from lowest to highest frequence
     magList.reverse()
     phaseList.reverse()
+    powerList.reverse()
     xdata.reverse()
-
-    #normalize complex mag and phase to the last
-    for i in range(0, len(magList)):
-        magList[i] /= magList[-1]
-        phaseList[i] = phaseList[-1] - phaseList[i]
-        if phaseList[i] > 180:
-            phaseList[i] -= 360
-        if phaseList[i] <= -180:
-            phaseList[i] += 360
 
     #combine xdata and ydata
     for i in range(0, len(xdata)):
-        masterList.append([xdata[i], magList[i], phaseList[i]])
+        masterList.append([xdata[i], magList[i], phaseList[i], powerList[i]])
     return masterList
+

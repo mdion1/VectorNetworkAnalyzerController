@@ -14,7 +14,14 @@ VNA = VNA_ctrl(sys.argv[2])
 
 #run experiment
 exp = experiment(sys.argv[3], VNA, Squidstat)
-data = exp.runExperiment()
+data = [];
+while True:
+    exp.setup()
+    data += exp.runExperiment()
+    if exp.IsExperimentComplete():
+        break;
+
+data = exp.normalizeData(data)
 
 #write data
 dataheader = {'Frequency', 'Magnitude', 'Phase'}

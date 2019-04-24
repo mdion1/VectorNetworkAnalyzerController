@@ -14,14 +14,13 @@ class VNA_ctrl:
         self.write('HOLD') 		#takes instrument out of free-run mode
         self.write('FORM3')        #sets data output mode to 64-bit double
         self.write('NA')           #set network analyzer mode
-        self.write('MEAS AB')      #set A/B meas mode
         self.write('ATTR 0DB')     #set channel R attenuation
         self.write('ATTA 0DB')     #set channel A attenuation
         self.write('ATTB 0DB')     #set channel B attenuation
         self.write('BWAUTO 0')     #turn off automatic IF BW selection
         self.write('AVER 1')       #turns on sample averaging
 
-    def setSweepType(self, sweeptype, start, stop, numPoints, signalStrength, centerFreq):   
+    def setSweepType(self, sweeptype, start, stop, numPoints, signalStrength = '0.01', centerFreq = '1000000'):   
         if sweeptype == 'power':
             self.write('CWFREQ ' + centerFreq)      #set center frequency
             self.write('SWPT POWE')                 #set sweep type to power
@@ -57,7 +56,12 @@ class VNA_ctrl:
         self.write('AVER 1')
         self.write('AVERFACT ' + averageNum)
 
-    def trigSweeps(self, numSweeps):
+    def trigSweeps_AB(self, numSweeps):
+        self.write('MEAS AB')      #set A/B meas mode
+        self.write('NUMG ' + numSweeps)
+
+    def trigSweeps_B(self, numSweeps):
+        self.write('MEAS B')       #set B meas mode
         self.write('NUMG ' + numSweeps)
 
     def waitForDataReady(self):
@@ -68,7 +72,7 @@ class VNA_ctrl:
                 if resp[1] == 0x31:     # 0x31 is ASCII '1'
                     break
 
-    def downloadData(self, pointsPerSweep):
+    def downloadPolarData(self, pointsPerSweep):
         self.write('OUTPDATA?')
         minNumBytes = 8 * 2 * int(pointsPerSweep) + 8 + 1        # 8 bytes * 2 doubles per point + 8-byte header + 1-byte postscript
         rawBytes = self.read(minNumBytes)
