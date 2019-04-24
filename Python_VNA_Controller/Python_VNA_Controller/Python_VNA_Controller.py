@@ -12,9 +12,14 @@ Squidstat = Squidstat_ctrl(sys.argv[1])
 Squidstat.ac_cal_mode(6)
 VNA = VNA_ctrl(sys.argv[2])
 
-#run experiment
+#run experiment, write data
 exp = experiment(sys.argv[3], VNA, Squidstat)
 data = [];
+dataheader = []
+if exp.sweepType == 'frequency':
+    dataheader = ['Frequency', 'Magnitude', 'Phase', 'Input power (dBm)']
+else:
+    dataheader = ['Input power (dBm)', 'Magnitude', 'Phase']
 while True:
     exp.setup()
     data += exp.runExperiment()
@@ -24,6 +29,6 @@ while True:
 data = exp.normalizeData(data)
 
 #write data
-dataheader = {'Frequency', 'Magnitude', 'Phase'}
+
 data_writer = dataWriter(sys.argv[4])
 data_writer.writeData(dataList = data, headerList = dataheader)

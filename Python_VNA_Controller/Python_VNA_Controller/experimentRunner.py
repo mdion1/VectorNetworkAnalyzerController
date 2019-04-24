@@ -30,6 +30,8 @@ class dataWriter:
                 self.csv_writer.writerow(dataList[i])
 
 class experiment:
+    centerFrequenciesIndex = 0
+    centerFrequencies = []
     def __init__(self, paramsFile, VNAobj, SquidstatObj):
         self.paramsReader = experimentParamsReader(paramsFile)
         self.VNA = VNAobj
@@ -37,7 +39,6 @@ class experiment:
         self.sweepType = self.paramsReader.getParam('sweepType')
         if self.sweepType == 'power':
             self.centerFrequencies = self.paramsReader.getParam('sweepCenterFreq')
-            self.centerFrequenciesIndex = 0
         self.isExperimentComplete = False
 
     def setup(self):
@@ -77,11 +78,11 @@ class experiment:
         numPoints = self.paramsReader.getParam('NumPoints')
         if (self.paramsReader.getParam('sweepType') == 'power'):
             xdata = getLinearList(float(start), float(stop), int(numPoints))
-            ret = combineData(xdata, rawdata1, rawdata2)
+            ret = combineData(xdata, rawdata1, rawdata2, fourthColumn = '')
             #todo: finish handling power sweep data
         else:
             xdata = getLogList(float(start), float(stop), int(numPoints))
-            ret = combineData(xdata, rawdata, rawdata2)
+            ret = combineData(xdata, rawdata1, rawdata2, fourthColumn = 'power')
 
         #increment centerFrequenciesIndex, update isExperimentDone
         self.centerFrequenciesIndex += 1
@@ -120,7 +121,7 @@ def getLogList(start: float, end: float, points: int):
         logList.append(start * (delta ** i))
     return logList
 
-def combineData(xdata, polarData, powerData, signalB_atten = 10):
+def combineData(xdata, polarData, powerData, signalB_atten = 10, fourthColumn = 'power'):
     masterList = []
     phaseList = []
     magList = []
@@ -144,6 +145,9 @@ def combineData(xdata, polarData, powerData, signalB_atten = 10):
 
     #combine xdata and ydata
     for i in range(0, len(xdata)):
-        masterList.append([xdata[i], magList[i], phaseList[i], powerList[i]])
+        if (fourthColumn == 'power'):
+            masterList.append([xdata[i], magList[i], phaseList[i], powerList[i]])
+        else:
+            masterList.append([powerList[i], magList[i], phaseList[i]])
     return masterList
 
