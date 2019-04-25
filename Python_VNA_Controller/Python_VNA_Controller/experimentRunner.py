@@ -22,10 +22,13 @@ class experimentParamsReader:
 class dataWriter:
     def __init__(self, filename):
         self._filename = filename
-    def writeData(self, dataList, headerList):
+    def writeHeader(self, headerList):
         with open(self._filename, mode = 'w') as csv_file:
             self.csv_writer = csv.writer(csv_file, delimiter=',')
             self.csv_writer.writerow(headerList)
+    def writeData(self, dataList):
+        with open(self._filename, mode = 'w') as csv_file:
+            self.csv_writer = csv.writer(csv_file, delimiter=',')
             for i in range(0, len(dataList)):
                 self.csv_writer.writerow(dataList[i])
 
@@ -40,6 +43,9 @@ class experiment:
         if self.sweepType == 'power':
             self.centerFrequencies = self.paramsReader.getParam('sweepCenterFreq')
         self.isExperimentComplete = False
+
+    def getCenterFrequencies(self):
+        return self.centerFrequencies
 
     def setup(self):
         self.Squid.ac_cal_mode(self.paramsReader.getParam('AC_CAL_MODE'))
