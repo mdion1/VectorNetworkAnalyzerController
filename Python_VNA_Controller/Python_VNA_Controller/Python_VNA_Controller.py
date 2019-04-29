@@ -20,12 +20,9 @@ dataheader = []
 experimentIndex = 0
 if exp.sweepType == 'frequency':
     dataheader = ['Frequency', 'Magnitude', 'Phase', 'Input power (dBm)']
-else:
-    dataheader = ['Input power (dBm)', 'Magnitude', 'Phase']
+
 while True:
-    exp.setup()
     dataTable.append(exp.runExperiment())
-    #experimentIndex += 1
     if exp.IsExperimentComplete():
         break;
 
@@ -35,7 +32,5 @@ for i in range(0, len(dataTable)):
         data_writer.writeHeader(dataheader)
         data_writer.writeData(dataTable[i])
     elif exp.sweepType == 'power':
-        data_writer.writeHeader(dataheader)
         data_writer.writeHeader('frequency = ' + str(exp.getCenterFrequencies()[i]) + 'Hz')
         data_writer.writeData(dataTable[i])
-    

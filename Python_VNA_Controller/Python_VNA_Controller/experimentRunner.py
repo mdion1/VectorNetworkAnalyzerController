@@ -35,6 +35,11 @@ class dataWriter:
 class experiment:
     centerFrequenciesIndex = 0
     centerFrequencies = []
+    pwrsweepTempStart
+    pwrsweepTempEnd
+    pwrsweepTempNumPoints
+    pwrsweepSegmentCount
+    sweepComplete
     def __init__(self, paramsFile, VNAobj, SquidstatObj):
         self.paramsReader = experimentParamsReader(paramsFile)
         self.VNA = VNAobj
@@ -47,16 +52,36 @@ class experiment:
     def getCenterFrequencies(self):
         return self.centerFrequencies
 
+    def initPwrSweep(self):
+        start = float(self.paramsReader.getParam('sweepStart'))
+        end = float(self.paramsReader.getParam('sweepEnd'))
+        numPoints = int(numPoints = int(self.paramsReader.getParam('NumPoints')))
+        pwrsweepStep = (end - start) / (numPoints - 1)
+
+        if (self.pwrsweepSegmentCount == 0):
+            self.pwrsweepTempStart = start
+        
+        self.pwrsweepTempNumPoints = int(min(20, end - starself.pwrsweepTempStart) / pwrsweepStep) + 1
+        self.pwrsweepTempEnd = self.pwrsweepTempStart + (self.pwrsweepTempNumPoints - 1) * pwrsweepStep
+        self.VNA.setSweepType(sweeptype = 'power',
+                                  start = string(self.pwrsweepStart),
+                                  stop = string(sweepEndThisSegment),
+                                  numPoints = string(numStepsThisSegment),
+                                  centerFreq = self.centerFrequencies[self.centerFrequenciesIndex])
+        self.pwrsweepTempStart = self.pwrsweepTempEnd + pwrsweepStep
+        self.pwrsweepSegmentCount += 1
+        if self.pwrsweepTempStart > end:
+            return True
+        else:
+            return False
+
     def setup(self):
         self.Squid.ac_cal_mode(self.paramsReader.getParam('AC_CAL_MODE'))
         self.VNA.setup_basline_settings()
         if self.sweepType == 'power':
-            self.VNA.setSweepType(sweeptype = 'power',
-                                  start = self.paramsReader.getParam('sweepStart'),
-                                  stop = self.paramsReader.getParam('sweepEnd'),
-                                  numPoints = self.paramsReader.getParam('NumPoints'),
-                                  centerFreq = self.centerFrequencies[self.centerFrequenciesIndex])
+            self.sweepComplete = self.pwrsweepStart()
         else:
+            self.sweepComplete = True
             self.VNA.setSweepType(sweeptype = 'frequency',
                                   start = self.paramsReader.getParam('sweepStart'),
                                   stop = self.paramsReader.getParam('sweepEnd'),
@@ -65,30 +90,40 @@ class experiment:
         self.VNA.setAverNum(self.paramsReader.getParam('AveragingNum'))
         
     def runExperiment(self):
-        #trigger A/B meas sweep
-        self.VNA.trigSweeps_AB(self.paramsReader.getParam('AveragingNum'))
-        self.VNA.waitForDataReady()
-        #get data
-        rawdata1 = self.VNA.downloadPolarData(self.paramsReader.getParam('NumPoints'))
-
-        #trigger B meas sweep
-        self.VNA.trigSweeps_B(self.paramsReader.getParam('AveragingNum'))
-        self.VNA.waitForDataReady()
-        #get data
-        rawdata2 = self.VNA.downloadPolarData(self.paramsReader.getParam('NumPoints'))
-        
+        self.pwrsweepSegmentCount = 0
         xdata = []
         ret = []
-        start = self.paramsReader.getParam('sweepStart')
-        stop = self.paramsReader.getParam('sweepEnd')
-        numPoints = self.paramsReader.getParam('NumPoints')
-        if (self.paramsReader.getParam('sweepType') == 'power'):
-            xdata = getLinearList(float(start), float(stop), int(numPoints))
-            ret = combineData(xdata, rawdata1, rawdata2, fourthColumn = '')
-            #todo: finish handling power sweep data
-        else:
-            xdata = getLogList(float(start), float(stop), int(numPoints))
-            ret = combineData(xdata, rawdata1, rawdata2, fourthColumn = 'power')
+        while True:
+            #setup parameters, send to VNA
+            self.setup()
+
+            #trigger A/B meas sweep
+            self.VNA.trigSweeps_AB(self.paramsReader.getParam('AveragingNum'))
+            self.VNA.waitForDataReady()
+            #get data
+            rawdata1 = self.VNA.downloadPolarData(self.paramsReader.getParam('NumPoints'))
+
+            #trigger B meas sweep
+            self.VNA.trigSweeps_B(self.paramsReader.getParam('AveragingNum'))
+            self.VNA.waitForDataReady()
+            #get data
+            rawdata2 = self.VNA.downloadPolarData(self.paramsReader.getParam('NumPoints'))
+        
+            if (self.paramsReader.getParam('sweepType') == 'power'):
+                start = self.pwrsweepTempStart
+                stop = self.pwrsweepTempEnd
+                numPoints = self.pwrsweepTempNumPoints
+                xdata += getLinearList(start, stop, numPoints)
+                ret += combineData(xdata, rawdata1, rawdata2, fourthColumn = '')
+                #todo: finish handling power sweep data
+            else:
+                xdata += getLogList(float(self.paramsReader.getParam('sweepStart')),
+                                   float(self.paramsReader.getParam('sweepEnd')),
+                                   int(self.paramsReader.getParam('NumPoints')))
+                ret += combineData(xdata, rawdata1, rawdata2, fourthColumn = 'power')
+
+            if self.sweepComplete:
+                break;
 
         #increment centerFrequenciesIndex, update isExperimentDone
         self.centerFrequenciesIndex += 1
@@ -136,7 +171,7 @@ def combineData(xdata, polarData, powerData, signalB_atten = 10, fourthColumn = 
     for i in range(0, len(polarData), 2):
         a = complex(polarData[i], polarData[i+1])
         magList.append(abs(a))
-        phaseList.append(cmath.phase(a) * 180 / cmath.pi)
+        phaseList.append(-cmath.phase(a) * 180 / cmath.pi)
 
     #parse powerData list for complex pairs
     for i in range(0, len(powerData), 2):
