@@ -65,6 +65,8 @@ class experiment:
 
         if self.pwrsweepSegmentCount == 0:
             self.pwrsweepTempStart = start
+        else:
+            self.pwrsweepTempStart = self.pwrsweepTempEnd + pwrsweepStep
         
         self.pwrsweepTempNumPoints = int(min(20, end - self.pwrsweepTempStart) / pwrsweepStep) + 1
         self.pwrsweepTempEnd = self.pwrsweepTempStart + (self.pwrsweepTempNumPoints - 1) * pwrsweepStep
@@ -73,7 +75,6 @@ class experiment:
                                   stop = str(self.pwrsweepTempEnd),
                                   numPoints = str(self.pwrsweepTempNumPoints),
                                   centerFreq = self.centerFrequencies[self.centerFrequenciesIndex])
-        self.pwrsweepTempStart = self.pwrsweepTempEnd + pwrsweepStep
         self.pwrsweepSegmentCount += 1
         if self.pwrsweepTempStart > end:
             return True
@@ -88,22 +89,23 @@ class experiment:
 
         if self.pwrsweepSegmentCount == 0:
             self.pwrsweepTempStart = start
+        else:
+            self.pwrsweepTempStart = self.pwrsweepTempEnd * pwrsweepStep
 
         if self.pwrsweepTempStart < 1500:
             self.pwrsweepTempNumPoints = int(math.log(1500 / self.pwrsweepTempStart) / math.log(pwrsweepStep)) + 1
             self.pwrsweepTempEnd = math.pow(pwrsweepStep, self.pwrsweepTempNumPoints - 1) * self.pwrsweepTempStart
         else:
             self.pwrsweepTempEnd = end
-            self.pwrsweepTempNumPoints = int(math.log(end / self.pwrsweepTempStart) / math.log(pwrsweepStep)) + 1
+            self.pwrsweepTempNumPoints = numPoints - self.pwrsweepTempNumPoints         #There should only be two segments, so points in sweep 2 = total points minus sweep 1
 
         self.VNA.setSweepType(sweeptype = 'frequency',
                                   start = str(self.pwrsweepTempStart),
                                   stop = str(self.pwrsweepTempEnd),
                                   numPoints = str(self.pwrsweepTempNumPoints),
                                   signalStrength = self.paramsReader.getParam('VoltageAmplitude'))
-        self.pwrsweepTempStart = self.pwrsweepTempEnd * pwrsweepStep
         self.pwrsweepSegmentCount += 1
-        if self.pwrsweepTempStart > end:
+        if self.pwrsweepTempEnd >= end:
             return True
         else:
             return False
@@ -137,17 +139,14 @@ class experiment:
             self.VNA.waitForDataReady()
             #get data
             rawdata2 = self.VNA.downloadPolarData(self.paramsReader.getParam('NumPoints'))
-        
+            start = self.pwrsweepTempStart
+            stop = self.pwrsweepTempEnd
+            numPoints = self.pwrsweepTempNumPoints
             if (self.paramsReader.getParam('sweepType') == 'power'):
-                start = self.pwrsweepTempStart
-                stop = self.pwrsweepTempEnd
-                numPoints = self.pwrsweepTempNumPoints
                 xdata = getLinearList(start, stop, numPoints)
                 ret += combineData(xdata, rawdata1, rawdata2, fourthColumn = '')
             else:
-                xdata = getLogList(float(self.paramsReader.getParam('sweepStart')),
-                                   float(self.paramsReader.getParam('sweepEnd')),
-                                   int(self.paramsReader.getParam('NumPoints')))
+                xdata = getLogList(start, stop, numPoints)
                 ret += combineData(xdata, rawdata1, rawdata2, fourthColumn = 'power')
 
             if self.sweepComplete:
@@ -175,6 +174,8 @@ def fixPhase(phase):
         return phase - 360
     if phase < -225:
         return phase + 360
+    else:
+        return phase
 
 def getLinearList(start, end, points):
     span = end - start
