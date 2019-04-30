@@ -63,7 +63,7 @@ class experiment:
         numPoints = int(self.paramsReader.getParam('NumPoints'))
         pwrsweepStep = (end - start) / (numPoints - 1)
 
-        if (self.pwrsweepSegmentCount == 0):
+        if self.pwrsweepSegmentCount == 0:
             self.pwrsweepTempStart = start
         
         self.pwrsweepTempNumPoints = int(min(20, end - self.pwrsweepTempStart) / pwrsweepStep) + 1
@@ -80,6 +80,34 @@ class experiment:
         else:
             return False
 
+    def initFreqSweep(self):
+        start = float(self.paramsReader.getParam('sweepStart'))
+        end = float(self.paramsReader.getParam('sweepEnd'))
+        numPoints = int(self.paramsReader.getParam('NumPoints'))
+        pwrsweepStep = math.pow(end / start, 1 / (numPoints - 1))
+
+        if self.pwrsweepSegmentCount == 0:
+            self.pwrsweepTempStart = start
+
+        if self.pwrsweepTempStart < 1500:
+            self.pwrsweepTempNumPoints = int(math.log(1500 / self.pwrsweepTempStart) / math.log(pwrsweepStep)) + 1
+            self.pwrsweepTempEnd = math.pow(pwrsweepStep, self.pwrsweepTempNumPoints - 1) * self.pwrsweepTempStart
+        else:
+            self.pwrsweepTempEnd = end
+            self.pwrsweepTempNumPoints = int(math.log(end / self.pwrsweepTempStart) / math.log(pwrsweepStep)) + 1
+
+        self.VNA.setSweepType(sweeptype = 'frequency',
+                                  start = str(self.pwrsweepTempStart),
+                                  stop = str(self.pwrsweepTempEnd),
+                                  numPoints = str(self.pwrsweepTempNumPoints),
+                                  signalStrength = self.paramsReader.getParam('VoltageAmplitude'))
+        self.pwrsweepTempStart = self.pwrsweepTempEnd * pwrsweepStep
+        self.pwrsweepSegmentCount += 1
+        if self.pwrsweepTempStart > end:
+            return True
+        else:
+            return False
+
     def setup(self):
         self.Squid.ac_cal_mode(self.paramsReader.getParam('AC_CAL_MODE'))
         self.VNA.setup_basline_settings()
@@ -87,11 +115,7 @@ class experiment:
             self.sweepComplete = self.initPwrSweep()
         else:
             self.sweepComplete = True
-            self.VNA.setSweepType(sweeptype = 'frequency',
-                                  start = self.paramsReader.getParam('sweepStart'),
-                                  stop = self.paramsReader.getParam('sweepEnd'),
-                                  numPoints = self.paramsReader.getParam('NumPoints'),
-                                  signalStrength = self.paramsReader.getParam('VoltageAmplitude'))
+            self.sweepComplete = self.initFreqSweep()
         self.VNA.setAverNum(self.paramsReader.getParam('AveragingNum'))
         
     def runExperiment(self):
@@ -109,7 +133,7 @@ class experiment:
             rawdata1 = self.VNA.downloadPolarData(self.paramsReader.getParam('NumPoints'))
 
             #trigger B meas sweep
-            self.VNA.trigSweeps_B(self.paramsReader.getParam('AveragingNum'))
+            self.VNA.trigSweeps_B('3')
             self.VNA.waitForDataReady()
             #get data
             rawdata2 = self.VNA.downloadPolarData(self.paramsReader.getParam('NumPoints'))
