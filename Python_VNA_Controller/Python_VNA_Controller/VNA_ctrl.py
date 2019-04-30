@@ -43,7 +43,7 @@ class VNA_ctrl:
         self.write('BW ' + ifbw)
     
     def get_IFBW_val_str(self, freq):
-        if freq >= 1000:
+        if freq >= 1500:
             return '300HZ'
         elif freq >=100:
             return '30HZ'

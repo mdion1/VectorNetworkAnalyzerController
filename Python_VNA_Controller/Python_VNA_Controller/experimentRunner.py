@@ -22,24 +22,29 @@ class experimentParamsReader:
 class dataWriter:
     def __init__(self, filename):
         self._filename = filename
-    def writeHeader(self, headerList):
         with open(self._filename, mode = 'w') as csv_file:
             self.csv_writer = csv.writer(csv_file, delimiter=',')
+        csv_file.close()
+    def writeHeader(self, headerList):
+        with open(self._filename, mode = 'a') as csv_file:
+            self.csv_writer = csv.writer(csv_file, delimiter=',')
             self.csv_writer.writerow(headerList)
+        csv_file.close()
     def writeData(self, dataList):
-        with open(self._filename, mode = 'w') as csv_file:
+        with open(self._filename, mode = 'a') as csv_file:
             self.csv_writer = csv.writer(csv_file, delimiter=',')
             for i in range(0, len(dataList)):
                 self.csv_writer.writerow(dataList[i])
+        csv_file.close()
 
 class experiment:
     centerFrequenciesIndex = 0
     centerFrequencies = []
-    pwrsweepTempStart
-    pwrsweepTempEnd
-    pwrsweepTempNumPoints
-    pwrsweepSegmentCount
-    sweepComplete
+    pwrsweepTempStart = 0
+    pwrsweepTempEnd = 0
+    pwrsweepTempNumPoints = 0
+    pwrsweepSegmentCount = 0
+    sweepComplete = False
     def __init__(self, paramsFile, VNAobj, SquidstatObj):
         self.paramsReader = experimentParamsReader(paramsFile)
         self.VNA = VNAobj
@@ -55,18 +60,18 @@ class experiment:
     def initPwrSweep(self):
         start = float(self.paramsReader.getParam('sweepStart'))
         end = float(self.paramsReader.getParam('sweepEnd'))
-        numPoints = int(numPoints = int(self.paramsReader.getParam('NumPoints')))
+        numPoints = int(self.paramsReader.getParam('NumPoints'))
         pwrsweepStep = (end - start) / (numPoints - 1)
 
         if (self.pwrsweepSegmentCount == 0):
             self.pwrsweepTempStart = start
         
-        self.pwrsweepTempNumPoints = int(min(20, end - starself.pwrsweepTempStart) / pwrsweepStep) + 1
+        self.pwrsweepTempNumPoints = int(min(20, end - self.pwrsweepTempStart) / pwrsweepStep) + 1
         self.pwrsweepTempEnd = self.pwrsweepTempStart + (self.pwrsweepTempNumPoints - 1) * pwrsweepStep
         self.VNA.setSweepType(sweeptype = 'power',
-                                  start = string(self.pwrsweepStart),
-                                  stop = string(sweepEndThisSegment),
-                                  numPoints = string(numStepsThisSegment),
+                                  start = str(self.pwrsweepTempStart),
+                                  stop = str(self.pwrsweepTempEnd),
+                                  numPoints = str(self.pwrsweepTempNumPoints),
                                   centerFreq = self.centerFrequencies[self.centerFrequenciesIndex])
         self.pwrsweepTempStart = self.pwrsweepTempEnd + pwrsweepStep
         self.pwrsweepSegmentCount += 1
@@ -79,7 +84,7 @@ class experiment:
         self.Squid.ac_cal_mode(self.paramsReader.getParam('AC_CAL_MODE'))
         self.VNA.setup_basline_settings()
         if self.sweepType == 'power':
-            self.sweepComplete = self.pwrsweepStart()
+            self.sweepComplete = self.initPwrSweep()
         else:
             self.sweepComplete = True
             self.VNA.setSweepType(sweeptype = 'frequency',
@@ -113,11 +118,10 @@ class experiment:
                 start = self.pwrsweepTempStart
                 stop = self.pwrsweepTempEnd
                 numPoints = self.pwrsweepTempNumPoints
-                xdata += getLinearList(start, stop, numPoints)
+                xdata = getLinearList(start, stop, numPoints)
                 ret += combineData(xdata, rawdata1, rawdata2, fourthColumn = '')
-                #todo: finish handling power sweep data
             else:
-                xdata += getLogList(float(self.paramsReader.getParam('sweepStart')),
+                xdata = getLogList(float(self.paramsReader.getParam('sweepStart')),
                                    float(self.paramsReader.getParam('sweepEnd')),
                                    int(self.paramsReader.getParam('NumPoints')))
                 ret += combineData(xdata, rawdata1, rawdata2, fourthColumn = 'power')
@@ -139,11 +143,14 @@ class experiment:
         for i in range(0, len(dataList)):
             dataList[i][1] /= dataList[-1][1]
             dataList[i][2] -= dataList[-1][2]
-            if dataList[i][2] > 180:
-                dataList[i][2] -= 360
-            if dataList[i][2] <= -180:
-                dataList[i][2] += 360
+            dataList[i][2] = fixPhase(dataList[i][2])
         return dataList
+
+def fixPhase(phase):
+    if phase > 135:
+        return phase - 360
+    if phase < -225:
+        return phase + 360
 
 def getLinearList(start, end, points):
     span = end - start
@@ -171,18 +178,12 @@ def combineData(xdata, polarData, powerData, signalB_atten = 10, fourthColumn = 
     for i in range(0, len(polarData), 2):
         a = complex(polarData[i], polarData[i+1])
         magList.append(abs(a))
-        phaseList.append(-cmath.phase(a) * 180 / cmath.pi)
+        phaseList.append(fixPhase(-cmath.phase(a) * 180 / cmath.pi))
 
     #parse powerData list for complex pairs
     for i in range(0, len(powerData), 2):
         a = complex(powerData[i], powerData[i+1])
         powerList.append(20 * math.log10(abs(a) * signalB_atten))
-
-    #order sweep from lowest to highest frequence
-    magList.reverse()
-    phaseList.reverse()
-    powerList.reverse()
-    xdata.reverse()
 
     #combine xdata and ydata
     for i in range(0, len(xdata)):
