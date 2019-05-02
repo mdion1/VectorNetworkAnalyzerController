@@ -11,18 +11,30 @@ if len(sys.argv) < 5:
 Squidstat = Squidstat_ctrl(sys.argv[1])
 Squidstat.ac_cal_mode(6)
 VNA = VNA_ctrl(sys.argv[2])
+powerBaselineSweep = False
+if len(sys.argv == 6):
+    if sys.argv[5] == 'power_baseline_sweep':
+        powerBaselineSweep = True
 
 #run experiment, write data
-
 exp = experiment(sys.argv[3], VNA, Squidstat)
 dataTable = []
 dataheader = []
 experimentIndex = 0
 if exp.sweepType == 'frequency':
-    dataheader = ['Frequency', 'Magnitude', 'Phase', 'Input power (dBm)']
+    if powerBaselineSweep:
+        dataheader = ['Output power (dB)']
+    else:
+        dataheader = ['Frequency', 'Magnitude', 'Phase']
 
 while True:
-    dataTable.append(exp.runExperiment())
+    if (exp.sweepType == 'frequency'):
+        if powerBaselineSweep:
+            dataTable.append(exp.runPowerBaselineSweep())
+        else:
+            dataTable.append(exp.runFreqSweepExperiment())
+    elif (exp.sweepType == 'power'):
+        dataTable.append(exp.runPowerSweepExperiment())
     if exp.IsExperimentComplete():
         break;
 
@@ -30,7 +42,8 @@ data_writer = dataWriter(sys.argv[4])
 for i in range(0, len(dataTable)):
     if exp.sweepType == 'frequency':
         dataTable[i].reverse()
-        dataTable[i] = exp.normalizeData(dataTable[i])
+        if not powerBaselineSweep:
+            dataTable[i] = exp.normalizeData(dataTable[i])
         data_writer.writeHeader(dataheader)
         data_writer.writeData(dataTable[i])
     elif exp.sweepType == 'power':

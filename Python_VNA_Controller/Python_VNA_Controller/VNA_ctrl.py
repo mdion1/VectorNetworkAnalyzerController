@@ -57,11 +57,11 @@ class VNA_ctrl:
         self.write('AVERFACT ' + averageNum)
 
     def trigSweeps_AB(self, numSweeps):
-        self.write('MEAS AB')      #set A/B meas mode
+        self.write('MEAS AB')      #set 'A/B' meas mode
         self.write('NUMG ' + numSweeps)
 
-    def trigSweeps_B(self, numSweeps):
-        self.write('MEAS B')       #set B meas mode
+    def trigSweeps_A(self, numSweeps):
+        self.write('MEAS A')       #set 'A' meas mode
         self.write('NUMG ' + numSweeps)
 
     def waitForDataReady(self):
