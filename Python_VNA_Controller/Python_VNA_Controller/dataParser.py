@@ -13,37 +13,40 @@ def smooth_col_2_3(datatable):
         y2data.append(datatable[i][2])
     y1data = savgol_filter(y1data, 5, 2) # window size 51, polynomial order 3
     y2data = savgol_filter(y2data, 5, 2) # window size 51, polynomial order 3
-    #for i in range(0,len(datatable)):
-    #    datatable[i][1] = y1data[i]
-    #    datatable[i][2] = y2data[i]
+    for i in range(0,len(datatable)):
+        datatable[i][1] = y1data[i]
+        datatable[i][2] = y2data[i]
 
 def calculate(blockMeas, roughMeas, baseline, outputPwrColumn):
     if alternate:
         PolDivideCol_2_3(blockMeas, baseline)
-        smooth_col_2_3(blockMeas)
+        #smooth_col_2_3(blockMeas)
         #PolMultCol_2_3(blockMeas, roughMeas)
-        Append4thCol(blockMeas, outputPwrColumn)
+        #Append4thCol(blockMeas, outputPwrColumn)
     else:
         PolDivideCol_2_3(blockMeas, baseline)
-        smooth_col_2_3(blockMeas)
+        #smooth_col_2_3(blockMeas)
         PolMultCol_2_3(blockMeas, roughMeas)
         Append4thCol(blockMeas, outputPwrColumn)
 
 
 def parseRawCSV(filename):
     dataTable = []
-    with open(filename) as csv_file:
-        csv_reader = csv.reader(csv_file, delimiter=',')
+    try:
+        with open(filename) as csv_file:
+            csv_reader = csv.reader(csv_file, delimiter=',')
         
-        for row in csv_reader:
-            row_float = []
-            for i in range(0, len(row)):
-                try:
-                    row_float.append(float(row[i]))
-                except ValueError:
-                    continue
-            if len(row_float) > 0:
-                dataTable.append(row_float)
+            for row in csv_reader:
+                row_float = []
+                for i in range(0, len(row)):
+                    try:
+                        row_float.append(float(row[i]))
+                    except ValueError:
+                        continue
+                if len(row_float) > 0:
+                    dataTable.append(row_float)
+    except:
+        return dataTable
     return dataTable
 
 def writeCSV(filename, data):
@@ -206,9 +209,10 @@ calculate(H_Vgain3_10, h_Vgain3_1, H_Baseline, outputPwr_Vgain3_10)
 H_residual = deepcopy(H_Baseline)
 if not alternate:
     PolDivideCol_2_3(H_residual, h_VBuf)
-    PolDivideCol_2_3(H_residual, h_Igain1_1)
-    PolDivideCol_2_3(H_residual, h_Igain2_1)
-    PolDivideCol_2_3(H_residual, h_Igain3_1)
+    PolDivideCol_2_3(H_residual, h_Vgain1_1)
+    PolDivideCol_2_3(H_residual, h_Vgain2_1)
+    PolDivideCol_2_3(H_residual, h_Vgain3_1)
+
     PolMultCol_2_3(H_residual, h_TIA_1_1)
     PolMultCol_2_3(H_residual, h_TIA_2_1)
     PolMultCol_2_3(H_residual, h_Igain1_1)
