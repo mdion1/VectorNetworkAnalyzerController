@@ -1,6 +1,7 @@
 import csv
 import cmath
 import math
+import time
 
 class experimentParamsReader:
     def __init__(self, filename):
@@ -126,6 +127,7 @@ class experiment:
             self.sweepComplete = self.initFreqSweep()
 
             #trigger A/B meas sweep
+            time.sleep(0.2)
             self.VNA.trigSweeps_AB(self.paramsReader.getParam('AveragingNum'))
             self.VNA.waitForDataReady()
             #get data
@@ -136,7 +138,7 @@ class experiment:
             stop = self.pwrsweepTempEnd
             numPoints = self.pwrsweepTempNumPoints
             xdata = getLogList(start, stop, numPoints)
-            ret += combineData(xdata, rawdata1, [])
+            ret += combineData(xdata, rawdata1, [], format = 'frequency-mag-phase')
 
             if self.sweepComplete:
                 break;
@@ -151,14 +153,13 @@ class experiment:
         ret = []
         #setup parameters, send to VNA
         self.setup()
-
         self.VNA.setSweepType(sweeptype = 'frequency',
                                   start = self.paramsReader.getParam('sweepStart'),
                                   stop = self.paramsReader.getParam('sweepEnd'),
-                                  numPoints = self.paramsReader.getParam('numPoints'),
+                                  numPoints = self.paramsReader.getParam('NumPoints'),
                                   signalStrength = self.paramsReader.getParam('VoltageAmplitude'))
 
-        #trigger B meas sweep
+        #trigger A meas sweep
         self.VNA.trigSweeps_A('3')
         self.VNA.waitForDataReady()
         #get data
@@ -169,7 +170,7 @@ class experiment:
         stop = self.pwrsweepTempEnd
         numPoints = self.pwrsweepTempNumPoints
         xdata = getLinearList(start, stop, numPoints)
-        ret += combineData(xdata, [], rawdata2)
+        ret += combineData(xdata, [], rawdata2, format = 'power')
 
         self.isExperimentComplete = True
 
@@ -201,7 +202,7 @@ class experiment:
             stop = self.pwrsweepTempEnd
             numPoints = self.pwrsweepTempNumPoints
             xdata = getLinearList(start, stop, numPoints)
-            ret += combineData(xdata, rawdata1, rawdata2)
+            ret += combineData(xdata, rawdata1, rawdata2, format = 'power-mag-phase')
 
             if self.sweepComplete:
                 break;
@@ -248,7 +249,7 @@ def getLogList(start: float, end: float, points: int):
         logList.append(start * (delta ** i))
     return logList
 
-def combineData(xdata, polarData, powerData, signalB_atten = 10):
+def combineData(xdata, polarData, powerData, signalB_atten = 10, format = 'frequency-mag-phase'):
     masterList = []
     phaseList = []
     magList = []
@@ -265,12 +266,14 @@ def combineData(xdata, polarData, powerData, signalB_atten = 10):
         powerList.append(20 * math.log10(abs(a) * signalB_atten))
 
     #combine xdata and ydata
-    for i in range(0, len(xdata)):
-        if len(powerData) == 0:
+    if format == 'frequency-mag-phase':
+        for i in range(0, len(xdata)):
             masterList.append([xdata[i], magList[i], phaseList[i]])
-        elif len(polarData) == 0:
+    elif format == 'power':
+        for i in range(0, len(powerList)):
             masterList.append([powerList[i]])
-        else:
-            masterList.append([powerList[i], magList[i], phaseList[i]])
+    elif format == 'power-mag-phase':
+        for i in range(0, len(powerList)):
+            masterList.append([powerList[i], magList[i], phaseList[i]])           
     return masterList
 

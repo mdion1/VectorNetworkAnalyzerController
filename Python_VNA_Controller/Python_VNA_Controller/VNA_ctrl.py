@@ -31,6 +31,7 @@ class VNA_ctrl:
             self.write('STOP ' + stop + 'HZ')       #set sweep end
             self.write('POWE ' + convertVoltsToDBM(signalStrength))      #set the input signal strength
             self.write('SWPT LOGF')                 #set sweep type to log frequency
+        time.sleep(0.2)
         self.write('POIN ' + numPoints)
         self.setIFBW(sweeptype, start, stop, centerFreq)
     

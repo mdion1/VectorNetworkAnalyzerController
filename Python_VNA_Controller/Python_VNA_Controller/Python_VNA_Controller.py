@@ -12,8 +12,8 @@ Squidstat = Squidstat_ctrl(sys.argv[1])
 Squidstat.ac_cal_mode(6)
 VNA = VNA_ctrl(sys.argv[2])
 powerBaselineSweep = False
-if len(sys.argv == 6):
-    if sys.argv[5] == 'power_baseline_sweep':
+if len(sys.argv) == 6:
+    if sys.argv[5] == 'power_sweep_baseline':
         powerBaselineSweep = True
 
 #run experiment, write data
@@ -23,7 +23,7 @@ dataheader = []
 experimentIndex = 0
 if exp.sweepType == 'frequency':
     if powerBaselineSweep:
-        dataheader = ['Output power (dB)']
+        dataheader = ['Frequency', 'Magnitude', 'Phase', 'Output power (dB)']
     else:
         dataheader = ['Frequency', 'Magnitude', 'Phase']
 
