@@ -10,13 +10,13 @@ class VNA_ctrl:
         self.write('*IDN?')
         print(self.read())
 
-    def setup_basline_settings(self):
+    def setup_basline_settings(self, attenA = '0DB', attenB = '0DB', attenR = '0DB'):
         self.write('HOLD') 		#takes instrument out of free-run mode
         self.write('FORM3')        #sets data output mode to 64-bit double
         self.write('NA')           #set network analyzer mode
-        self.write('ATTR 0DB')     #set channel R attenuation
-        self.write('ATTA 0DB')     #set channel A attenuation
-        self.write('ATTB 0DB')     #set channel B attenuation
+        self.write('ATTR ' + attenR)     #set channel R attenuation
+        self.write('ATTA ' + attenA)     #set channel A attenuation
+        self.write('ATTB ' + attenB)     #set channel B attenuation
         self.write('BWAUTO 0')     #turn off automatic IF BW selection
         self.write('AVER 1')       #turns on sample averaging
 

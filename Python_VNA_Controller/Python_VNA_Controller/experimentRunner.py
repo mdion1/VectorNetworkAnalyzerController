@@ -8,6 +8,11 @@ class experimentParamsReader:
         with open(filename) as csv_file:
             csv_reader = csv.reader(csv_file, delimiter=',')
             self.masterDictionary = {};
+            #load default params
+            self.masterDictionary['AttenA'] = ['0DB']
+            self.masterDictionary['AttenB'] = ['0DB']
+            self.masterDictionary['AttenR'] = ['0DB']
+            #load params from file
             for row in csv_reader:
                 self.masterDictionary[row[0]] = row[1:]
 
@@ -114,7 +119,9 @@ class experiment:
 
     def setup(self):
         self.Squid.ac_cal_mode(self.paramsReader.getParam('AC_CAL_MODE'))
-        self.VNA.setup_basline_settings()
+        attenuationA = self.paramsReader.getParam('AttenA')
+        attenuationB = self.paramsReader.getParam('AttenB')
+        self.VNA.setup_basline_settings(attenA = attenuationA, attenB = attenuationB)
         self.VNA.setAverNum(self.paramsReader.getParam('AveragingNum'))
 
     def runFreqSweepExperiment(self):

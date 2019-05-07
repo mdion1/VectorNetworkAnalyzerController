@@ -42,8 +42,8 @@ data_writer = dataWriter(sys.argv[4])
 for i in range(0, len(dataTable)):
     if exp.sweepType == 'frequency':
         dataTable[i].reverse()
-        if not powerBaselineSweep:
-            dataTable[i] = exp.normalizeData(dataTable[i])
+        #if not powerBaselineSweep:
+        #    dataTable[i] = exp.normalizeData(dataTable[i])
         data_writer.writeHeader(dataheader)
         data_writer.writeData(dataTable[i])
     elif exp.sweepType == 'power':
