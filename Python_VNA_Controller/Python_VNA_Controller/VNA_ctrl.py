@@ -7,6 +7,7 @@ class VNA_ctrl:
     def __init__(self, comport):
         self.ser = serial.Serial(comport)
         self.ser.timeout = 0.2
+        self.write('++addr 16');
         self.write('*IDN?')
         print(self.read())
 
@@ -46,9 +47,11 @@ class VNA_ctrl:
     def get_IFBW_val_str(self, freq):
         if freq >= 1500:
             return '300HZ'
-        elif freq >=100:
+        elif freq >= 500:
+            return '100HZ'
+        elif freq >=150:
             return '30HZ'
-        elif freq >= 30:
+        elif freq >= 50:
             return '10HZ'
         else:
             return '2HZ'

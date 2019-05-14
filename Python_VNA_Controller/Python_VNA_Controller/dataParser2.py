@@ -38,7 +38,7 @@ def findIndex(table, minFreq):
             break
     return index
 
-def calculate(blockMeas, roughMeas, baseline, outputPwrColumn):
+def calculate(blockMeas, baseline):
     normalize(blockMeas)
     PolDivideCol_2_3(blockMeas, baseline)
 
@@ -87,7 +87,7 @@ def PolInvCol_2_3(baseTable):
     return ret
 
 def PolMultCol_2_3(baseTable, auxTable):
-    for i in range(0, len(baseTable)):
+    for i in range(0, len(auxTable)):
         baseTable[i][1] *= auxTable[i][1]
         baseTable[i][2] += auxTable[i][2]
 

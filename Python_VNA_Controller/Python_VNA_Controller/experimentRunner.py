@@ -29,16 +29,16 @@ class dataWriter:
     def __init__(self, filename):
         self._filename = filename
         with open(self._filename, mode = 'w') as csv_file:
-            self.csv_writer = csv.writer(csv_file, delimiter=',')
+            self.csv_writer = csv.writer(csv_file, delimiter=',', lineterminator = '\n')
         csv_file.close()
     def writeHeader(self, headerList):
         with open(self._filename, mode = 'a') as csv_file:
-            self.csv_writer = csv.writer(csv_file, delimiter=',')
+            self.csv_writer = csv.writer(csv_file, delimiter=',', lineterminator = '\n')
             self.csv_writer.writerow(headerList)
         csv_file.close()
     def writeData(self, dataList):
         with open(self._filename, mode = 'a') as csv_file:
-            self.csv_writer = csv.writer(csv_file, delimiter=',')
+            self.csv_writer = csv.writer(csv_file, delimiter=',', lineterminator = '\n')
             for i in range(0, len(dataList)):
                 self.csv_writer.writerow(dataList[i])
         csv_file.close()
@@ -99,7 +99,8 @@ class experiment:
         else:
             self.pwrsweepTempStart = self.pwrsweepTempEnd * pwrsweepStep
 
-        if self.pwrsweepTempStart < 1500:
+        #if self.pwrsweepTempStart < 1500:
+        if False:
             self.pwrsweepTempNumPoints = int(math.log(1500 / self.pwrsweepTempStart) / math.log(pwrsweepStep)) + 1
             self.pwrsweepTempEnd = math.pow(pwrsweepStep, self.pwrsweepTempNumPoints - 1) * self.pwrsweepTempStart
         else:
