@@ -73,13 +73,13 @@ def writeCSV(filename, data):
             csv_writer.writerow(data[i])
     csv_file.close()
 
-def PolDivideCol_2_3(numerator, denominator):
+def PolDivide(numerator, denominator):
     for i in range(0, len(numerator)):
         if len(denominator) > i:
             numerator[i][1] /= denominator[i][1]
             numerator[i][2] -= denominator[i][2]
 
-def PolInvCol_2_3(baseTable):
+def PolInv(baseTable):
     ret = deepcopy(baseTable)
     for i in range(0, len(baseTable)):
         ret[i][1] = 1 / baseTable[i][1]
@@ -90,13 +90,13 @@ def InvertPhase(baseTable):
     for i in range(0, len(baseTable)):
         baseTable[i][2] *= -1
 
-def PolMultCol_2_3(baseTable, auxTable):
+def PolMult(baseTable, auxTable):
     length = min(len(baseTable), len(auxTable))
     for i in range(0, length):
         baseTable[i][1] *= auxTable[i][1]
         baseTable[i][2] += auxTable[i][2]
 
-def PolAddCol_2_3(baseTable, auxTable):
+def PolAdd(baseTable, auxTable):
     length = min(len(baseTable), len(auxTable))
     for i in range(0, length):
         base_phi = baseTable[i][2] / 180 * math.pi
@@ -107,7 +107,7 @@ def PolAddCol_2_3(baseTable, auxTable):
         baseTable[i][1] = abs(sum)
         baseTable[i][2] = cmath.phase(sum) * 180 / math.pi
 
-def PolSubtractCol_2_3(baseTable, auxTable):
+def PolSubtract(baseTable, auxTable):
     length = min(len(baseTable), len(auxTable))
     for i in range(0, length):
         base_phi = baseTable[i][2] / 180 * math.pi
@@ -140,10 +140,11 @@ def popSweep(masterTable):
             N += 1
             if (len(masterTable) == 0) or (masterTable[0][0] != freq):
                 break
-        if len(row) > 3:
-            ret.append([freq, mag / N, phase / N, IsigMag / N])
-        else:
-            ret.append([freq, mag / N, phase / N])
+        #if len(row) > 3:
+        #    ret.append([freq, mag / N, phase / N, IsigMag / N])
+        #else:
+        #    ret.append([freq, mag / N, phase / N])
+        ret.append([freq, mag / N, phase / N])
         if (len(masterTable) == 0) or (masterTable[0][0] > freq):
             break
     return ret
@@ -162,53 +163,37 @@ InvertPhase(rawDataTier2)
 rawDataTier3 = parseRawCSV(sys.argv[4])
 InvertPhase(rawDataTier3)
 
-rawDataRange1 = parseRawCSV(sys.argv[5])
-InvertPhase(rawDataRange1)
+rawData10R = parseRawCSV(sys.argv[5])
+InvertPhase(rawData10R)
 
-rawDataRange3 = parseRawCSV(sys.argv[6])
-InvertPhase(rawDataRange3)
+rawData100R = parseRawCSV(sys.argv[6])
+InvertPhase(rawData100R)
 
-rawDataRange4 = parseRawCSV(sys.argv[7])
-InvertPhase(rawDataRange4)
-
-rawDataRange5 = parseRawCSV(sys.argv[8])
-InvertPhase(rawDataRange5)
-
-Range2_Rerr = parseRawCSV(sys.argv[9])
-Range3_Rerr = parseRawCSV(sys.argv[10])
-Range4_Rerr = parseRawCSV(sys.argv[11])
-Range1_Rerr = parseRawCSV(sys.argv[12])
-Range5_Rerr = parseRawCSV(sys.argv[13])
-
-#debugging only
-#Range2_Rerr = [[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0]]
-#Range3_Rerr = Range2_Rerr
-#Range4_Rerr = Range2_Rerr
-#Range1_Rerr = Range2_Rerr
-#Range5_Rerr = Range2_Rerr
+rawData1k = parseRawCSV(sys.argv[7])
+InvertPhase(rawData1k)
 
 # parse and normalize sweeps from each gain setting
 range2 = popSweep(rawDataTier1)
 H_BaselineV = deepcopy(range2)
-H_BaselineI = PolInvCol_2_3(H_BaselineV)
+H_BaselineI = PolInv(H_BaselineV)
 V2 = popSweep(rawDataTier1)
 V5 = popSweep(rawDataTier1)
 V10 = popSweep(rawDataTier1)
-I2 = PolInvCol_2_3(popSweep(rawDataTier1))
-I5 = PolInvCol_2_3(popSweep(rawDataTier1))
-I10 = PolInvCol_2_3(popSweep(rawDataTier1))
+I2 = PolInv(popSweep(rawDataTier1))
+I5 = PolInv(popSweep(rawDataTier1))
+I10 = PolInv(popSweep(rawDataTier1))
 V20 = popSweep(rawDataTier2)
 V50 = popSweep(rawDataTier2)
 V100 = popSweep(rawDataTier2)
-I20 = PolInvCol_2_3(popSweep(rawDataTier2))
-I50 = PolInvCol_2_3(popSweep(rawDataTier2))
-I100 = PolInvCol_2_3(popSweep(rawDataTier2))
+I20 = PolInv(popSweep(rawDataTier2))
+I50 = PolInv(popSweep(rawDataTier2))
+I100 = PolInv(popSweep(rawDataTier2))
 V200 = popSweep(rawDataTier3)
 V500 = popSweep(rawDataTier3)
 V1000 = popSweep(rawDataTier3)
-I200 = PolInvCol_2_3(popSweep(rawDataTier3))
-I500 = PolInvCol_2_3(popSweep(rawDataTier3))
-I1000 = PolInvCol_2_3(popSweep(rawDataTier3))
+I200 = PolInv(popSweep(rawDataTier3))
+I500 = PolInv(popSweep(rawDataTier3))
+I1000 = PolInv(popSweep(rawDataTier3))
 normalize(H_BaselineV)
 normalize(H_BaselineI)
 normalize(V2)
@@ -231,40 +216,40 @@ normalize(I500)
 normalize(I1000)
 
 #calculate tier 1 gains (x2 thru x10)
-PolDivideCol_2_3(V2, H_BaselineV)
-PolDivideCol_2_3(V5, H_BaselineV)
-PolDivideCol_2_3(V10, H_BaselineV)
-PolDivideCol_2_3(I2, H_BaselineI)
-PolDivideCol_2_3(I5, H_BaselineI)
-PolDivideCol_2_3(I10, H_BaselineI)
+PolDivide(V2, H_BaselineV)
+PolDivide(V5, H_BaselineV)
+PolDivide(V10, H_BaselineV)
+PolDivide(I2, H_BaselineI)
+PolDivide(I5, H_BaselineI)
+PolDivide(I10, H_BaselineI)
 
 #calculate tier2 gains (x20 thru x100)
-PolDivideCol_2_3(V20, H_BaselineV)
-PolMultCol_2_3(V20, I10)
-PolDivideCol_2_3(V50, H_BaselineV)
-PolMultCol_2_3(V50, I10)
-PolDivideCol_2_3(V100, H_BaselineV)
-PolMultCol_2_3(V100, I10)
-PolDivideCol_2_3(I20, H_BaselineI)
-PolMultCol_2_3(I20, V10)
-PolDivideCol_2_3(I50, H_BaselineI)
-PolMultCol_2_3(I50, V10)
-PolDivideCol_2_3(I100, H_BaselineI)
-PolMultCol_2_3(I100, V10)
+PolDivide(V20, H_BaselineV)
+PolMult(V20, I10)
+PolDivide(V50, H_BaselineV)
+PolMult(V50, I10)
+PolDivide(V100, H_BaselineV)
+PolMult(V100, I10)
+PolDivide(I20, H_BaselineI)
+PolMult(I20, V10)
+PolDivide(I50, H_BaselineI)
+PolMult(I50, V10)
+PolDivide(I100, H_BaselineI)
+PolMult(I100, V10)
 
 #calculate tier2 gains (x200 thru x1000)
-PolDivideCol_2_3(V200, H_BaselineV)
-PolMultCol_2_3(V200, I100)
-PolDivideCol_2_3(V500, H_BaselineV)
-PolMultCol_2_3(V500, I100)
-PolDivideCol_2_3(V1000, H_BaselineV)
-PolMultCol_2_3(V1000, I100)
-PolDivideCol_2_3(I200, H_BaselineI)
-PolMultCol_2_3(I200, V100)
-PolDivideCol_2_3(I500, H_BaselineI)
-PolMultCol_2_3(I500, V100)
-PolDivideCol_2_3(I1000, H_BaselineI)
-PolMultCol_2_3(I1000, V100)
+PolDivide(V200, H_BaselineV)
+PolMult(V200, I100)
+PolDivide(V500, H_BaselineV)
+PolMult(V500, I100)
+PolDivide(V1000, H_BaselineV)
+PolMult(V1000, I100)
+PolDivide(I200, H_BaselineI)
+PolMult(I200, V100)
+PolDivide(I500, H_BaselineI)
+PolMult(I500, V100)
+PolDivide(I1000, H_BaselineI)
+PolMult(I1000, V100)
 
 #smooth data
 smooth_col_2_3(I2)
@@ -287,86 +272,46 @@ smooth_col_2_3(V500)
 smooth_col_2_3(V1000)
 
 # parse sweeps from each range setting
-range1 = popSweep(rawDataRange1)
-range3 = popSweep(rawDataRange3)
-range4ctrl = popSweep(rawDataRange4)
-range4 = popSweep(rawDataRange4)
-range5ctrl = popSweep(rawDataRange5)
-range5 = popSweep(rawDataRange5)
-ScalarMult(Range2_Rerr, 100 / 10)
-ScalarMult(Range3_Rerr, 1000 / 10)
-ScalarMult(Range4_Rerr, 10000 / 10)
-ScalarMult(Range5_Rerr, 100000 / 10)
-#todo: is it best to smooth before or after corrections?
-smooth_col_2_3(Range1_Rerr, re_normalize = False)
-smooth_col_2_3(Range2_Rerr, re_normalize = False)
-smooth_col_2_3(Range3_Rerr, re_normalize = False)
-smooth_col_2_3(Range4_Rerr, re_normalize = False)
-smooth_col_2_3(Range5_Rerr, re_normalize = False)
-
-#debugging: recalculate Range5_Rerr based on Range4_Rerr, not on VNA measurement
-r5Norm = deepcopy(range5); PolDivideCol_2_3(r5Norm, range5ctrl); normalize(r5Norm)
-Range5_Rerr = deepcopy(Range4_Rerr); PolMultCol_2_3(Range5_Rerr, r5Norm); smooth_col_2_3(Range5_Rerr, re_normalize = False)
-
-#range0/1
-PolDivideCol_2_3(range1, V10); PolMultCol_2_3(range1, I100)     #divide out Igain = 100 and Vgain = 10
-#todo: PolAddCol_2_3(range1, Range1_Rerr)                              #account for R_err
-normalize(range1)
-range1 = PolInvCol_2_3(range1)
-range0 = deepcopy(range1)
+R2_V10_I1_10R = popSweep(rawData10R)
+R1_V10_I1_10R = popSweep(rawData10R)
+R2_V10_I1_100R = popSweep(rawData100R)
+R3_V10_I1_100R = popSweep(rawData100R)
+R3_V10_I1_1k = popSweep(rawData1k)
+R4_V10_I1_1k = popSweep(rawData1k)
+R5_V10_I1_1k = popSweep(rawData1k)
 
 #range2
-PolSubtractCol_2_3(range2, Range2_Rerr)     #PolAddCol_2_3(range2, Range2_Rerr)                              #account for R_err
 normalize(range2)
-range2 = PolInvCol_2_3(range2)
+range2 = PolInv(range2)
+
+#range0/1
+range1 = deepcopy(R1_V10_I1_10R)
+PolDivide(range1, R2_V10_I1_10R)
+normalize(range1)
+range1 = PolInv(range1)
+PolMult(range1, range2)
+range0 = deepcopy(range1)
 
 #range3
-PolDivideCol_2_3(range3, V10);                                                                                #divide out Igain = 10 and Vgain = 10
-PolSubtractCol_2_3(range3, Range3_Rerr)      #PolAddCol_2_3(range3, Range3_Rerr)                              #account for R_err
+range3 = deepcopy(R3_V10_I1_100R)
+PolDivide(range3, R2_V10_I1_100R)
 normalize(range3)
-range3 = PolInvCol_2_3(range3)
+range3 = PolInv(range3)
+PolMult(range3, range2)
 
-##range4
-#PolDivideCol_2_3(range4ctrl, V10); PolMultCol_2_3(range4ctrl, I10); PolAddCol_2_3(range4ctrl, Range2_Rerr)  #divide out Igain = 10 and Vgain = 10; account for R_err
-#PolDivideCol_2_3(range4, V10); PolAddCol_2_3(range4, Range4_Rerr)                                           #divide out Vgain = 10; account for R_err
-#PolDivideCol_2_3(range4, range4ctrl); PolMultCol_2_3(range4, PolInvCol_2_3(range3))                         #normalize to a load of 100Ohm
-#normalize(range4)
-#range4 = PolInvCol_2_3(range4)
-
-#alternate range4
-PolDivideCol_2_3(range4ctrl, V10); PolMultCol_2_3(range4ctrl, I10); PolSubtractCol_2_3(range4ctrl, Range3_Rerr)  #divide out Igain = 10 and Vgain = 10; account for R_err
-PolDivideCol_2_3(range4, V10); PolSubtractCol_2_3(range4, Range4_Rerr)                                           #divide out Vgain = 10; account for R_err
-load_adj_1k_to_100R = deepcopy(range4ctrl); PolDivideCol_2_3(load_adj_1k_to_100R, PolInvCol_2_3(range3))    #calculate adjustment from 1kOhm to 100Ohm
-smooth_col_2_3(load_adj_1k_to_100R)                                                                         #remove noise from control runs
-PolDivideCol_2_3(range4, load_adj_1k_to_100R)
+#range4
+range4 = deepcopy(R4_V10_I1_1k)
+PolDivide(range4, R3_V10_I1_1k)
 normalize(range4)
-range4 = PolInvCol_2_3(range4)
+range4 = PolInv(range4)
+PolMult(range4, range3)
 
-##range5
-#PolDivideCol_2_3(range5ctrl, V10); PolAddCol_2_3(range5ctrl, Range4_Rerr)  #divide out Igain = 10 and Vgain = 10; account for R_err
-#PolDivideCol_2_3(range5, V10); PolAddCol_2_3(range5, Range5_Rerr)                                           #divide out Vgain = 10; account for R_err
-#PolDivideCol_2_3(range5, range5ctrl); PolMultCol_2_3(range5, PolInvCol_2_3(range4))                         #normalize to a load of 100Ohm
-#normalize(range5)
-#range5 = PolInvCol_2_3(range5)
-
-#alternate range5
-#PolDivideCol_2_3(range5ctrl, V10); PolSubtractCol_2_3(range5ctrl, Range4_Rerr)  #divide out Igain = 10 and Vgain = 10; account for R_err
-PolDivideCol_2_3(range5, V10);  PolSubtractCol_2_3(range5, Range5_Rerr)                                     #divide out Vgain = 10; account for R_err
-#load_adj_10k_to_100R = deepcopy(range5ctrl); PolDivideCol_2_3(load_adj_10k_to_100R, PolInvCol_2_3(range4))  #calculate adjustment from 1kOhm to 100Ohm
-#smooth_col_2_3(load_adj_10k_to_100R)                                                                        #remove noise from control runs
-PolDivideCol_2_3(range5, load_adj_1k_to_100R) #PolDivideCol_2_3(range5, load_adj_10k_to_100R)
+#range5
+range5 = deepcopy(R5_V10_I1_1k)
+PolDivide(range5, R3_V10_I1_1k)
 normalize(range5)
-range5 = PolInvCol_2_3(range5)
-
-# calculate R_err tables
-PolDivideCol_2_3(Range1_Rerr, PolInvCol_2_3(range1))
-PolDivideCol_2_3(Range2_Rerr, PolInvCol_2_3(range2))
-PolDivideCol_2_3(Range3_Rerr, PolInvCol_2_3(range3))
-PolDivideCol_2_3(Range4_Rerr, PolInvCol_2_3(range4))
-PolDivideCol_2_3(Range5_Rerr, PolInvCol_2_3(range5))
-#todo: is it better to smooth here, after corrections are performed?
-#smooth_col_2_3(Range2_Rerr, re_normalize = False)
-#smooth_col_2_3(Range4_Rerr, re_normalize = False)
+range5 = PolInv(range5)
+PolMult(range5, range3)
 
 # write the resulting data to CSV files
 writeCSV(basefolder + 'Igain2.csv', I2)
@@ -393,17 +338,15 @@ writeCSV(basefolder + 'Range2.csv', range2)
 writeCSV(basefolder + 'Range3.csv', range3)
 writeCSV(basefolder + 'Range4.csv', range4)
 writeCSV(basefolder + 'Range5.csv', range5)
-writeCSV(basefolder + 'Range1_Rerr.csv', Range1_Rerr)
-writeCSV(basefolder + 'Range2_Rerr.csv', Range2_Rerr)
-writeCSV(basefolder + 'Range3_Rerr.csv', Range3_Rerr)
-writeCSV(basefolder + 'Range4_Rerr.csv', Range4_Rerr)
-writeCSV(basefolder + 'Range5_Rerr.csv', Range5_Rerr)
 
 # write "dummy" files
 dummyData = [[1000000, 1, 0], [1, 1, 0]]
 writeCSV(basefolder + 'V_inputBuffer.csv', dummyData)
 writeCSV(basefolder + 'Igain1.csv', dummyData)
 writeCSV(basefolder + 'WEgain1.csv', dummyData)
+
+print("Script complete, press enter to close this window...")
+input()
 
 #V1_I1 = deepcopy(H_BaselineV)
 #PolDivideCol_2_3(V1_I1, H_BaselineV)
