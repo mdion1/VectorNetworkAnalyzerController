@@ -24,27 +24,12 @@ def smooth_col_2_3(datatable, window = 5, order = 1, re_normalize = True):
     if (re_normalize):
         normalize(datatable)
 
-def normalize(table, lowestMagFrequency = 0):
+def normalize(table):
     BasePhase = table[-1][2]
-    BaseMagIndex = findIndex(table, lowestMagFrequency)
-    BaseMag = table[BaseMagIndex][1]
+    BaseMag = table[-1][1]
     for i in range(0,len(table)):
-        if i <= BaseMagIndex:
-            table[i][1] /= BaseMag
-        else:
-            table[i][1] = 1
+        table[i][1] /= BaseMag
         table[i][2] -= BasePhase
-
-def findIndex(table, minFreq):
-    index = 0
-    for i in range(0,len(table)):
-        if table[i][0] > minFreq:
-            index = i
-            continue
-        else:
-            break
-    return index
-
 
 def parseRawCSV(filename):
     dataTable = []
@@ -75,9 +60,9 @@ def writeCSV(filename, data):
 
 def PolDivide(numerator, denominator):
     for i in range(0, len(numerator)):
-        if len(denominator) > i:
-            numerator[i][1] /= denominator[i][1]
-            numerator[i][2] -= denominator[i][2]
+        freq = numerator[i][0]
+        numerator[i][1] /= interpolate(freq, denominator, 1)
+        numerator[i][2] -= interpolate(freq, denominator, 2)
 
 def PolInv(baseTable):
     ret = deepcopy(baseTable)
@@ -91,32 +76,70 @@ def InvertPhase(baseTable):
         baseTable[i][2] *= -1
 
 def PolMult(baseTable, auxTable):
-    length = min(len(baseTable), len(auxTable))
-    for i in range(0, length):
-        baseTable[i][1] *= auxTable[i][1]
-        baseTable[i][2] += auxTable[i][2]
+    for i in range(0, len(baseTable)):
+        freq = baseTable[i][0]
+        baseTable[i][1] *= interpolate(freq, auxTable, 1)
+        baseTable[i][2] += interpolate(freq, auxTable, 2)
 
 def PolAdd(baseTable, auxTable):
-    length = min(len(baseTable), len(auxTable))
-    for i in range(0, length):
+    for i in range(0, len(baseTable)):
+        freq = baseTable[i][0]
         base_phi = baseTable[i][2] / 180 * math.pi
         base = complex(baseTable[i][1] * math.cos(base_phi), baseTable[i][1] * math.sin(base_phi))
-        aux_phi = auxTable[i][2] / 180 * math.pi
-        aux = complex(auxTable[i][1] * math.cos(base_phi), auxTable[i][1] * math.sin(base_phi))
+        aux_phi = interpolate(freq, auxTable, 2) / 180 * math.pi
+        aux_mag = interpolate(freq, auxTable, 1)
+        aux = complex(aux_mag * math.cos(base_phi), aux_mag * math.sin(base_phi))
         sum = base + aux
         baseTable[i][1] = abs(sum)
         baseTable[i][2] = cmath.phase(sum) * 180 / math.pi
 
 def PolSubtract(baseTable, auxTable):
-    length = min(len(baseTable), len(auxTable))
-    for i in range(0, length):
+    for i in range(0, len(baseTable)):
+        freq = baseTable[i][0]
         base_phi = baseTable[i][2] / 180 * math.pi
         base = complex(baseTable[i][1] * math.cos(base_phi), baseTable[i][1] * math.sin(base_phi))
-        aux_phi = auxTable[i][2] / 180 * math.pi
-        aux = complex(auxTable[i][1] * math.cos(base_phi), auxTable[i][1] * math.sin(base_phi))
+        aux_phi = interpolate(freq, auxTable, 2) / 180 * math.pi
+        aux_mag = interpolate(freq, auxTable, 1)
+        aux = complex(aux_mag * math.cos(base_phi), aux_mag * math.sin(base_phi))
         diff = base - aux
         baseTable[i][1] = abs(diff)
         baseTable[i][2] = cmath.phase(diff) * 180 / math.pi
+
+def interpolate(x, lookupTable, ycol = 1, semilog = True):
+    #make sure table is sorted in descending order (by first column)
+    if(lookupTable[0][0] < lookupTable[-1][0]):
+        lookupTable.sort(key = sortByFirstElement)
+
+    #if x is outside the bounds of the table, return one of the bounding values
+    if x >= lookupTable[0][0]:
+        return lookupTable[0][ycol]
+    elif x <= lookupTable[-1][0]:
+        return lookupTable[-1][ycol]
+    #else interpolate
+    else:
+        indexR = 1
+        for i in range(1, len(lookupTable)):
+            if x > lookupTable[indexR][0]:
+                break
+            else:
+                indexR += 1
+        indexL = indexR - 1
+        xL = 0.0; xR = 0.0; xi = x
+        if (semilog):
+            xL = math.log10(lookupTable[indexL][0])
+            xR = math.log10(lookupTable[indexR][0])
+            xi = math.log10(x)
+        else:
+            xL = lookupTable[indexL][0]
+            xR = lookupTable[indexR][0]
+        yL = lookupTable[indexL][ycol]
+        yR = lookupTable[indexR][ycol]
+        yi = yL + (xi - xL) / (xR - xL) * (yR - yL)
+        return yi
+
+def sortByFirstElement(val):
+    return val[0]
+
 
 def ScalarMult(baseTable, scalar):
     for i in range(0, len(baseTable)):
@@ -171,6 +194,12 @@ InvertPhase(rawData100R)
 
 rawData1k = parseRawCSV(sys.argv[7])
 InvertPhase(rawData1k)
+
+rawData100k = parseRawCSV(sys.argv[8])
+InvertPhase(rawData100k)
+
+rawData10M = parseRawCSV(sys.argv[9])
+InvertPhase(rawData10M)
 
 # parse and normalize sweeps from each gain setting
 range2 = popSweep(rawDataTier1)
@@ -274,23 +303,36 @@ smooth_col_2_3(V1000)
 # parse sweeps from each range setting
 R2_V10_I1_10R = popSweep(rawData10R)
 R1_V10_I1_10R = popSweep(rawData10R)
+R1_V10_I10_10R = popSweep(rawData10R)
+R0_V10_I10_10R = popSweep(rawData10R)
 R2_V10_I1_100R = popSweep(rawData100R)
 R3_V10_I1_100R = popSweep(rawData100R)
 R3_V10_I1_1k = popSweep(rawData1k)
 R4_V10_I1_1k = popSweep(rawData1k)
 R5_V10_I1_1k = popSweep(rawData1k)
+R5_V10_I1_100k = popSweep(rawData100k)
+R6_V10_I1_100k = popSweep(rawData100k)
+R6_V10_I100_10M = popSweep(rawData10M)
+R8_V10_I1_10M = popSweep(rawData10M)
+
 
 #range2
 normalize(range2)
 range2 = PolInv(range2)
 
-#range0/1
+#range1
 range1 = deepcopy(R1_V10_I1_10R)
 PolDivide(range1, R2_V10_I1_10R)
 normalize(range1)
 range1 = PolInv(range1)
 PolMult(range1, range2)
-range0 = deepcopy(range1)
+
+#range0
+range0 = deepcopy(R0_V10_I10_10R)
+PolDivide(range0, R1_V10_I10_10R)
+normalize(range0)
+range0 = PolInv(range0)
+PolMult(range0, range1)
 
 #range3
 range3 = deepcopy(R3_V10_I1_100R)
@@ -313,37 +355,58 @@ normalize(range5)
 range5 = PolInv(range5)
 PolMult(range5, range3)
 
+#range6/7
+range6 = deepcopy(R6_V10_I1_100k)
+normalize(R5_V10_I1_100k)
+smooth_col_2_3(R5_V10_I1_100k)
+PolDivide(range6, R5_V10_I1_100k)
+normalize(range6)
+range6 = PolInv(range6)
+PolMult(range6, range5)
+
+#range8/9
+range8 = deepcopy(R8_V10_I1_10M)
+normalize(R6_V10_I100_10M)
+smooth_col_2_3(R6_V10_I100_10M)
+PolDivide(range8, R6_V10_I100_10M)
+normalize(range8)
+range8 = PolInv(range8)
+PolMult(range8, range6)
+
 # write the resulting data to CSV files
-writeCSV(basefolder + 'Igain2.csv', I2)
-writeCSV(basefolder + 'Igain5.csv', I5)
-writeCSV(basefolder + 'Igain10.csv', I10)
-writeCSV(basefolder + 'Igain20.csv', I20)
-writeCSV(basefolder + 'Igain50.csv', I50)
-writeCSV(basefolder + 'Igain100.csv', I100)
-writeCSV(basefolder + 'Igain200.csv', I200)
-writeCSV(basefolder + 'Igain500.csv', I500)
-writeCSV(basefolder + 'Igain1000.csv', I1000)
-writeCSV(basefolder + 'WEgain2.csv', V2)
-writeCSV(basefolder + 'WEgain5.csv', V5)
-writeCSV(basefolder + 'WEgain10.csv', V10)
-writeCSV(basefolder + 'WEgain20.csv', V20)
-writeCSV(basefolder + 'WEgain50.csv', V50)
-writeCSV(basefolder + 'WEgain100.csv', V100)
-writeCSV(basefolder + 'WEgain200.csv', V200)
-writeCSV(basefolder + 'WEgain500.csv', V500)
-writeCSV(basefolder + 'WEgain1000.csv', V1000)
+writeCSV(basefolder + 'WEgain1_Igain2.csv', I2)
+writeCSV(basefolder + 'WEgain1_Igain5.csv', I5)
+writeCSV(basefolder + 'WEgain1_Igain10.csv', I10)
+writeCSV(basefolder + 'WEgain1_Igain20.csv', I20)
+writeCSV(basefolder + 'WEgain1_Igain50.csv', I50)
+writeCSV(basefolder + 'WEgain1_Igain100.csv', I100)
+writeCSV(basefolder + 'WEgain1_Igain200.csv', I200)
+writeCSV(basefolder + 'WEgain1_Igain500.csv', I500)
+writeCSV(basefolder + 'WEgain1_Igain1000.csv', I1000)
+writeCSV(basefolder + 'WEgain2_Igain1.csv', V2)
+writeCSV(basefolder + 'WEgain5_Igain1.csv', V5)
+writeCSV(basefolder + 'WEgain10_Igain1.csv', V10)
+writeCSV(basefolder + 'WEgain20_Igain1.csv', V20)
+writeCSV(basefolder + 'WEgain50_Igain1.csv', V50)
+writeCSV(basefolder + 'WEgain100_Igain1.csv', V100)
+writeCSV(basefolder + 'WEgain200_Igain1.csv', V200)
+writeCSV(basefolder + 'WEgain500_Igain1.csv', V500)
+writeCSV(basefolder + 'WEgain1000_Igain1.csv', V1000)
 writeCSV(basefolder + 'Range0.csv', range0)
 writeCSV(basefolder + 'Range1.csv', range1)
 writeCSV(basefolder + 'Range2.csv', range2)
 writeCSV(basefolder + 'Range3.csv', range3)
 writeCSV(basefolder + 'Range4.csv', range4)
 writeCSV(basefolder + 'Range5.csv', range5)
+writeCSV(basefolder + 'Range6.csv', range6)
+writeCSV(basefolder + 'Range7.csv', range6)
+writeCSV(basefolder + 'Range8.csv', range8)
+writeCSV(basefolder + 'Range9.csv', range8)
 
 # write "dummy" files
 dummyData = [[1000000, 1, 0], [1, 1, 0]]
 writeCSV(basefolder + 'V_inputBuffer.csv', dummyData)
-writeCSV(basefolder + 'Igain1.csv', dummyData)
-writeCSV(basefolder + 'WEgain1.csv', dummyData)
+writeCSV(basefolder + 'WEgain1_Igain1.csv', dummyData)
 
 print("Script complete, press enter to close this window...")
 input()
