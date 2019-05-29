@@ -183,37 +183,6 @@ basefolder = sys.argv[1]
 if not (basefolder[-1] == '\\' or basefolder[-1] == '/'):
     basefolder += '\\'
 
-#debugging area
-#correction_factor = parseRawCSV('C:\V_inputBuffer1153.csv')
-#InvertPhase(correction_factor)
-#uncorrected_gainTier2 = parseRawCSV('C:\Plus1153\Gain Tier 2\pre-corrected.csv')
-#PolMult(uncorrected_gainTier2, correction_factor)
-#writeCSV('C:\Plus1153\Gain Tier 2\corrected.csv', uncorrected_gainTier2)
-
-#uncorrected_gainTier3 = parseRawCSV('C:\Plus1153\Gain Tier 3\pre-corrected.csv')
-#PolMult(uncorrected_gainTier3, correction_factor)
-#writeCSV('C:\Plus1153\Gain Tier 3\corrected.csv', uncorrected_gainTier3)
-
-#uncorrected_1k = parseRawCSV('C:\\Plus1153\\1kΩ run\\pre-corrected.csv')
-#PolMult(uncorrected_1k, correction_factor)
-#writeCSV('C:\\Plus1153\\1kΩ run\\corrected.csv', uncorrected_1k)
-
-#uncorrected_10M = parseRawCSV('C:\\Plus1153\\10MΩ run\\pre-corrected.csv')
-#PolMult(uncorrected_10M, correction_factor)
-#writeCSV('C:\\Plus1153\\10MΩ run\\corrected.csv', uncorrected_10M)
-
-#uncorrected_10R = parseRawCSV('C:\\Plus1153\\10Ω run\\pre-corrected.csv')
-#PolMult(uncorrected_10R, correction_factor)
-#writeCSV('C:\\Plus1153\\10Ω run\\corrected.csv', uncorrected_10R)
-
-#uncorrected_100k = parseRawCSV('C:\\Plus1153\\100kΩ run\\pre-corrected.csv')
-#PolMult(uncorrected_100k, correction_factor)
-#writeCSV('C:\\Plus1153\\100kΩ run\\corrected.csv', uncorrected_100k)
-
-#uncorrected_100R = parseRawCSV('C:\\Plus1153\\100Ω run\\pre-corrected.csv')
-#PolMult(uncorrected_100R, correction_factor)
-#writeCSV('C:\\Plus1153\\100Ω run\\corrected.csv', uncorrected_100R)
-
 DataComplete = True
 ErrorStrList = []
 FrequencyList_1M_to_10k = [995000, 794999.9375, 634999.9375, 504999.9688, 398107.1562, 316227.6875, 251188.5938, 199526.1719, 158489.3125, 125892.4609, 99999.92188, 79419.92969, 63095.70703, 50118.66016, 39810.6875, 31622.68555, 25118.79492, 19952.5625, 15848.875, 12589.24609, 9999.983398]
@@ -286,6 +255,41 @@ dataParseCheck = experimentDataSet(rawData10M, DatasetName = '10MOhm Run')
 dataParseCheck.addSweep(FrequencyList = FrequencyList_100_to_1)
 dataParseCheck.addSweep(FrequencyList = FrequencyList_100_to_100m)
 DataComplete &= dataParseCheck.checkForCompleteness(ErrorStrList)
+
+#************************experimental 10 Ohm runs***********************************
+# import raw data from "10 Ohm Run A" experiment
+rawData10R_A = parseRawCSV(basefolder + '10 Ohm Run A/')
+InvertPhase(rawData10R_A)
+dataParseCheck = experimentDataSet(rawData10R_A, DatasetName = '10 Ohm Run A')
+for i in range(0, 5):
+    dataParseCheck.addSweep(FrequencyList = FrequencyList_1M_to_10k)
+DataComplete &= dataParseCheck.checkForCompleteness(ErrorStrList)
+
+# import raw data from "10 Ohm Run B" experiment
+rawData10R_B = parseRawCSV(basefolder + '10 Ohm Run B/')
+InvertPhase(rawData10R_B)
+dataParseCheck = experimentDataSet(rawData10R_B, DatasetName = '10 Ohm Run B')
+for i in range(0, 6):
+    dataParseCheck.addSweep(FrequencyList = FrequencyList_1M_to_10k)
+DataComplete &= dataParseCheck.checkForCompleteness(ErrorStrList)
+
+# import raw data from "10 Ohm Run C" experiment
+rawData10R_C = parseRawCSV(basefolder + '10 Ohm Run C/')
+InvertPhase(rawData10R_C)
+dataParseCheck = experimentDataSet(rawData10R_C, DatasetName = '10 Ohm Run C')
+for i in range(0, 6):
+    dataParseCheck.addSweep(FrequencyList = FrequencyList_1M_to_10k)
+DataComplete &= dataParseCheck.checkForCompleteness(ErrorStrList)
+
+# import raw data from "10 Ohm Run D" experiment
+rawData10R_D = parseRawCSV(basefolder + '10 Ohm Run D/')
+InvertPhase(rawData10R_D)
+dataParseCheck = experimentDataSet(rawData10R_D, DatasetName = '10 Ohm Run D')
+for i in range(0, 6):
+    dataParseCheck.addSweep(FrequencyList = FrequencyList_1M_to_10k)
+DataComplete &= dataParseCheck.checkForCompleteness(ErrorStrList)
+
+#*****************************************************************************************
 
 if not DataComplete:
     logFile = open('C:\\potentiostat\\squidstatcalibrator\\bin\\debug\\ACcalibration_logfile.txt', 'w')
@@ -500,6 +504,72 @@ else:
     dummyData = [[1000000, 1, 0], [1, 1, 0]]
     writeCSV(basefolder + 'V_inputBuffer.csv', dummyData)
     writeCSV(basefolder + 'WEgain1_Igain1.csv', dummyData)
+
+    #************************experimental 10 Ohm runs***********************************
+    R2_V1_I1_10R = popSweep(rawData10R_A)
+    #R2_V10_I1_10R = popSweep(rawData10R_A)
+    #R1_V10_I1_10R = popSweep(rawData10R_A)
+    #R1_V10_I10_10R = popSweep(rawData10R_A)
+    #R0_V10_I10_10R = popSweep(rawData10R_A)
+
+    R2_V50_I1_10R = popSweep(rawData10R_B)
+    R2_V50_I2_10R = popSweep(rawData10R_B)
+    R2_V50_I5_10R = popSweep(rawData10R_B)
+    R2_V50_I10_10R = popSweep(rawData10R_B)
+    R2_V50_I20_10R = popSweep(rawData10R_B)
+    R2_V50_I50_10R = popSweep(rawData10R_B)
+
+    R2_V100_I1_10R = popSweep(rawData10R_C)
+    R2_V100_I2_10R = popSweep(rawData10R_C)
+    R2_V100_I5_10R = popSweep(rawData10R_C)
+    R2_V100_I10_10R = popSweep(rawData10R_C)
+    R2_V100_I20_10R = popSweep(rawData10R_C)
+    R2_V100_I50_10R = popSweep(rawData10R_C)
+
+    R2_V200_I1_10R = popSweep(rawData10R_D)
+    R2_V200_I2_10R = popSweep(rawData10R_D)
+    R2_V200_I5_10R = popSweep(rawData10R_D)
+    R2_V200_I10_10R = popSweep(rawData10R_D)
+    R2_V200_I20_10R = popSweep(rawData10R_D)
+    R2_V200_I50_10R = popSweep(rawData10R_D)
+
+    V50_I1 = deepcopy(R2_V50_I1_10R); PolDivide(V50_I1, R2_V1_I1_10R); smooth_col_2_3(V50_I1)
+    V50_I2 = deepcopy(R2_V50_I2_10R); PolDivide(V50_I2, R2_V1_I1_10R); smooth_col_2_3(V50_I2)
+    V50_I5 = deepcopy(R2_V50_I5_10R); PolDivide(V50_I5, R2_V1_I1_10R); smooth_col_2_3(V50_I5)
+    V50_I10 = deepcopy(R2_V50_I10_10R); PolDivide(V50_I10, R2_V1_I1_10R); smooth_col_2_3(V50_I10)
+    V50_I20 = deepcopy(R2_V50_I20_10R); PolDivide(V50_I20, R2_V1_I1_10R); smooth_col_2_3(V50_I20)
+    V50_I50 = deepcopy(R2_V50_I50_10R); PolDivide(V50_I50, R2_V1_I1_10R); smooth_col_2_3(V50_I50)
+    V100_I1 = deepcopy(R2_V100_I1_10R); PolDivide(V100_I1, R2_V1_I1_10R); smooth_col_2_3(V100_I1)
+    V100_I2 = deepcopy(R2_V100_I2_10R); PolDivide(V100_I2, R2_V1_I1_10R); smooth_col_2_3(V100_I2)
+    V100_I5 = deepcopy(R2_V100_I5_10R); PolDivide(V100_I5, R2_V1_I1_10R); smooth_col_2_3(V100_I5)
+    V100_I10 = deepcopy(R2_V100_I10_10R); PolDivide(V100_I10, R2_V1_I1_10R); smooth_col_2_3(V100_I10)
+    V100_I20 = deepcopy(R2_V100_I20_10R); PolDivide(V100_I20, R2_V1_I1_10R); smooth_col_2_3(V100_I20)
+    V100_I50 = deepcopy(R2_V100_I50_10R); PolDivide(V100_I50, R2_V1_I1_10R); smooth_col_2_3(V100_I50)
+    V200_I1 = deepcopy(R2_V200_I1_10R); PolDivide(V200_I1, R2_V1_I1_10R); smooth_col_2_3(V200_I1)
+    V200_I2 = deepcopy(R2_V200_I2_10R); PolDivide(V200_I2, R2_V1_I1_10R); smooth_col_2_3(V200_I2)
+    V200_I5 = deepcopy(R2_V200_I5_10R); PolDivide(V200_I5, R2_V1_I1_10R); smooth_col_2_3(V200_I5)
+    V200_I10 = deepcopy(R2_V200_I10_10R); PolDivide(V200_I10, R2_V1_I1_10R); smooth_col_2_3(V200_I10)
+    V200_I20 = deepcopy(R2_V200_I20_10R); PolDivide(V200_I20, R2_V1_I1_10R); smooth_col_2_3(V200_I20)
+    V200_I50 = deepcopy(R2_V200_I50_10R); PolDivide(V200_I50, R2_V1_I1_10R); smooth_col_2_3(V200_I50)
+
+    writeCSV(basefolder + 'WEgain50_Igain1.csv', V50_I1)
+    writeCSV(basefolder + 'WEgain50_Igain2.csv', V50_I2)
+    writeCSV(basefolder + 'WEgain50_Igain5.csv', V50_I5)
+    writeCSV(basefolder + 'WEgain50_Igain10.csv', V50_I10)
+    writeCSV(basefolder + 'WEgain50_Igain20.csv', V50_I20)
+    writeCSV(basefolder + 'WEgain50_Igain50.csv', V50_I50)
+    writeCSV(basefolder + 'WEgain100_Igain1.csv', V100_I1)
+    writeCSV(basefolder + 'WEgain100_Igain2.csv', V100_I2)
+    writeCSV(basefolder + 'WEgain100_Igain5.csv', V100_I5)
+    writeCSV(basefolder + 'WEgain100_Igain10.csv', V100_I10)
+    writeCSV(basefolder + 'WEgain100_Igain20.csv', V100_I20)
+    writeCSV(basefolder + 'WEgain100_Igain50.csv', V100_I50)
+    writeCSV(basefolder + 'WEgain200_Igain1.csv', V200_I1)
+    writeCSV(basefolder + 'WEgain200_Igain2.csv', V200_I2)
+    writeCSV(basefolder + 'WEgain200_Igain5.csv', V200_I5)
+    writeCSV(basefolder + 'WEgain200_Igain10.csv', V200_I10)
+    writeCSV(basefolder + 'WEgain200_Igain20.csv', V200_I20)
+    writeCSV(basefolder + 'WEgain200_Igain50.csv', V200_I50)
 
 print("Script complete, press enter to close this window...")
 input()
