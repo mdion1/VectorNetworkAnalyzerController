@@ -7,22 +7,28 @@ from copy import deepcopy
 import numpy as np
 from scipy.signal import savgol_filter
 from dataParserHelper import experimentDataSet
+from dataParserHelper import findOutliers
+import statistics
+from numpy import percentile
+
+smoothing_on = False
 
 #****************** Helper functions**********************
 def PolSmooth(datatable, window = 5, order = 1, re_normalize = True):
-    real_list = []
-    imag_list = []
-    for i in range(0,len(datatable)):
-        mag = datatable[i][1]
-        phi = datatable[i][2] / 180 * math.pi
-        real_list.append(mag * math.cos(phi))
-        imag_list.append(mag * math.sin(phi))
-    real_list = savgol_filter(real_list, window, order)
-    imag_list = savgol_filter(imag_list, window, order)
-    for i in range(0,len(datatable)):
-        x = complex(real_list[i], imag_list[i])
-        datatable[i][1] = abs(x)
-        datatable[i][2] = cmath.phase(x) * 180 / math.pi
+    if smoothing_on:
+        real_list = []
+        imag_list = []
+        for i in range(0,len(datatable)):
+            mag = datatable[i][1]
+            phi = datatable[i][2] / 180 * math.pi
+            real_list.append(mag * math.cos(phi))
+            imag_list.append(mag * math.sin(phi))
+        real_list = savgol_filter(real_list, window, order)
+        imag_list = savgol_filter(imag_list, window, order)
+        for i in range(0,len(datatable)):
+            x = complex(real_list[i], imag_list[i])
+            datatable[i][1] = abs(x)
+            datatable[i][2] = cmath.phase(x) * 180 / math.pi
     if (re_normalize):
         normalize(datatable)
 
@@ -55,12 +61,21 @@ def parseRawCSV(directoryName):
             return dataTable
     return dataTable
 
-def writeCSV(filename, data):
+def writeRow(csvwriter, datarow):
+    if isinstance(datarow, list):
+        if isinstance(datarow[0], list):
+            for i in range(0, len(datarow)):
+                writeRow(csvwriter, datarow[i])
+        else:
+            csvwriter.writerow(datarow)
+    else:
+        csvwriter.writerow([datarow])
+
+def writeCSV(filename, data, header = ['Frequency', 'Magnitude', 'Phase(degrees)']):
     with open(filename, mode = 'w') as csv_file:
         csv_writer = csv.writer(csv_file, delimiter=',', lineterminator = '\n')
-        csv_writer.writerow(['Frequency', 'Magnitude', 'Phase(degrees)'])
-        for i in range(0, len(data)):
-            csv_writer.writerow(data[i])
+        writeRow(csv_writer, header)
+        writeRow(csv_writer, data)
     csv_file.close()
 
 def PolDivide(numerator, denominator):
@@ -153,26 +168,19 @@ def ScalarMult(baseTable, scalar):
 def popSweep(masterTable):
     ret = []
     while True:
-        mag = 0
-        phase = 0
+        mag = []
+        phase = []
         freq = 0
-        IsigMag = 0
-        N = 0
         while True:
             row = masterTable.pop(0)
             freq = row[0]
-            mag += row[1]
-            phase += row[2]
-            if len(row) > 3:
-                IsigMag += row[3]
-            N += 1
+            mag.append(row[1])
+            phase.append(row[2])
             if (len(masterTable) == 0) or (masterTable[0][0] != freq):
                 break
-        #if len(row) > 3:
-        #    ret.append([freq, mag / N, phase / N, IsigMag / N])
-        #else:
-        #    ret.append([freq, mag / N, phase / N])
-        ret.append([freq, mag / N, phase / N])
+        findOutliers(mag, phase, margin = 5)
+        avg_mag = statistics.mean(mag)
+        ret.append([freq, avg_mag, statistics.mean(phase)])
         if (len(masterTable) == 0) or (masterTable[0][0] > freq):
             break
     return ret
@@ -185,6 +193,7 @@ if not (basefolder[-1] == '\\' or basefolder[-1] == '/'):
 
 DataComplete = True
 ErrorStrList = []
+allSweepStats = []
 FrequencyList_1M_to_1k = [995000, 794999.9375, 634999.9375, 504999.9688, 398107.1562, 316227.6875, 251188.5938, 199526.1719, 158489.3125, 125892.4609, 99999.92188, 79419.92969, 63095.70703, 50118.66016, 39810.6875, 31622.68555, 25118.79492, 19952.5625, 15848.875, 12589.24609, 9999.983398, 6309.524414, 3981.054688, 2511.881836, 1584.889893, 999.9959717]
 FrequencyList_10k_to_100 = [9999.983398, 6309.570801, 3981.054688, 2511.881836, 1584.889893, 999.9959717, 630.9564819, 398.1054688, 251.1878815, 158.4892731, 99.99930573]
 FrequencyList_10k_to_1 = [9999.983398, 6309.570801, 3981.054688, 2511.881836, 1584.889893, 999.9959717, 630.9564819, 398.1054688, 251.1878815, 158.4892731, 99.99930573, 63.09564972, 39.81058502, 25.11878777, 15.84885502, 9.999984741, 6.309528351, 3.981062889, 2.511876583, 1.584885478, 0.9999951124]
@@ -195,9 +204,10 @@ FrequencyList_100_to_100m = [99.99930573, 79.432724, 63.09564972, 50.1186142, 39
 rawData1R = parseRawCSV(basefolder + '1 ohm run/')
 InvertPhase(rawData1R)
 dataParseCheck = experimentDataSet(rawData1R, DatasetName = '1 Ohm Run')
-for i in range(0, 4):
+for i in range(0, 3):
     dataParseCheck.addSweep(FrequencyList = FrequencyList_1M_to_1k)
 DataComplete &= dataParseCheck.checkForCompleteness(ErrorStrList)
+allSweepStats += dataParseCheck.getStats()
 
 # import raw data from "10 Ohm Run" experiment
 rawData10R = parseRawCSV(basefolder + '10 Ohm run/')
@@ -206,14 +216,16 @@ dataParseCheck = experimentDataSet(rawData10R, DatasetName = '10 Ohm Run')
 for i in range(0, 24):
     dataParseCheck.addSweep(FrequencyList = FrequencyList_1M_to_1k)
 DataComplete &= dataParseCheck.checkForCompleteness(ErrorStrList)
+allSweepStats += dataParseCheck.getStats()
 
 # import raw data from "100 Ohm Run" experiment
 rawData100R = parseRawCSV(basefolder + '100 Ohm run/')
 InvertPhase(rawData100R)
 dataParseCheck = experimentDataSet(rawData100R, DatasetName = '100 Ohm Run')
-for i in range(0, 8):
+for i in range(0, 8):   #for i in range(0, 9):
     dataParseCheck.addSweep(FrequencyList = FrequencyList_1M_to_1k)
 DataComplete &= dataParseCheck.checkForCompleteness(ErrorStrList)
+allSweepStats += dataParseCheck.getStats()
 
 # import raw data from "1kOhm Run" experiment
 rawData1k = parseRawCSV(basefolder + '1kOhm run/')
@@ -222,6 +234,7 @@ dataParseCheck = experimentDataSet(rawData1k, DatasetName = '1kOhm Run')
 for i in range(0, 7):
     dataParseCheck.addSweep(FrequencyList = FrequencyList_1M_to_1k)
 DataComplete &= dataParseCheck.checkForCompleteness(ErrorStrList)
+allSweepStats += dataParseCheck.getStats()
 
 # import raw data from "10kOhm Run" experiment
 rawData10k = parseRawCSV(basefolder + '10kOhm run/')
@@ -230,6 +243,7 @@ dataParseCheck = experimentDataSet(rawData10k, DatasetName = '10kOhm Run')
 for i in range(0, 4):
     dataParseCheck.addSweep(FrequencyList = FrequencyList_1M_to_1k)
 DataComplete &= dataParseCheck.checkForCompleteness(ErrorStrList)
+allSweepStats += dataParseCheck.getStats()
 
 # import raw data from "100kOhm Run" experiment
 rawData100k = parseRawCSV(basefolder + '100kOhm run/')
@@ -238,17 +252,19 @@ dataParseCheck = experimentDataSet(rawData100k, DatasetName = '100kOhm Run')
 dataParseCheck.addSweep(FrequencyList = FrequencyList_10k_to_100)
 dataParseCheck.addSweep(FrequencyList = FrequencyList_10k_to_1)
 DataComplete &= dataParseCheck.checkForCompleteness(ErrorStrList)
+allSweepStats += dataParseCheck.getStats()
 
-# import raw data from "100kOhm Run" experiment
+# import raw data from "10MOhm Run" experiment
 rawData10M = parseRawCSV(basefolder + '10MOhm run/')
 InvertPhase(rawData10M)
 dataParseCheck = experimentDataSet(rawData10M, DatasetName = '10MOhm Run')
 dataParseCheck.addSweep(FrequencyList = FrequencyList_100_to_1)
 dataParseCheck.addSweep(FrequencyList = FrequencyList_100_to_100m)
 DataComplete &= dataParseCheck.checkForCompleteness(ErrorStrList)
+allSweepStats += dataParseCheck.getStats()
 
 #*****************************************************************************************
-
+writeCSV(basefolder + 'sweep stats.csv', allSweepStats, header = ['Frequency', 'Norm(StDev(Mag))', 'Norm(Range(Mag))', 'StDev(phase)', 'Range(phase)'])
 if not DataComplete:
     logFile = open('C:\\potentiostat\\squidstatcalibrator\\bin\\debug\\ACcalibration_logfile.txt', 'w')
     for substr in ErrorStrList:
@@ -259,7 +275,6 @@ else:
     #****************************************** parse sweeps from each test***********************************************
     # 1 Ohm run
     R2_V100_I1_1R = popSweep(rawData1R)
-    R2_V200_I1_1R = popSweep(rawData1R)
     R2_V500_I1_1R = popSweep(rawData1R)
     R2_V1000_I1_1R = popSweep(rawData1R)
 
@@ -299,6 +314,7 @@ else:
     R2_V1_I2_100R = popSweep(rawData100R)
     R2_V1_I5_100R = popSweep(rawData100R)
     R2_V1_I10_100R = popSweep(rawData100R)
+    #R2_V10_I10_100R = popSweep(rawData100R)
     R3_V10_I1_100R = popSweep(rawData100R)
 
     # 1kOhm run
@@ -306,7 +322,7 @@ else:
     R2_V1_I20_1k = popSweep(rawData1k)
     R2_V1_I50_1k = popSweep(rawData1k)
     R2_V1_I100_1k = popSweep(rawData1k)
-    R3_V10_I1_1k = popSweep(rawData1k)
+    R3_V10_I1_1k = popSweep(rawData1k)  #R3_V10_I10_1k = popSweep(rawData1k)
     R4_V10_I1_1k = popSweep(rawData1k)
     R5_V10_I1_1k = popSweep(rawData1k)
 
@@ -327,6 +343,68 @@ else:
     #****************************************** calculations ***********************************************
     range2 = deepcopy(R2_V1_I1_100R)
     H_BaselineV = deepcopy(R2_V1_I1_100R)
+
+    # I/V Gains 1, 2, 5, 10 (from 100 Ohm run)
+    V2_I1 = deepcopy(R2_V2_I1_100R)
+    PolDivide(V2_I1, H_BaselineV); PolSmooth(V2_I1)
+    V5_I1 = deepcopy(R2_V5_I1_100R)
+    PolDivide(V5_I1, H_BaselineV); PolSmooth(V5_I1)
+    V10_I1 = deepcopy(R2_V10_I1_100R)
+    PolDivide(V10_I1, H_BaselineV); PolSmooth(V10_I1)
+    V1_I2 = deepcopy(R2_V1_I2_100R)
+    PolDivide(V1_I2, H_BaselineV); PolSmooth(V1_I2)
+    V1_I5 = deepcopy(R2_V1_I5_100R)
+    PolDivide(V1_I5, H_BaselineV); PolSmooth(V1_I5)
+    V1_I10 = deepcopy(R2_V1_I10_100R)
+    PolDivide(V1_I10, H_BaselineV); # smooth later
+    #V10_I10 = deepcopy(R2_V10_I10_100R)
+    #PolDivide(V10_I10, H_BaselineV); PolSmooth(V10_I10)
+
+    # VGains 20, 50, 100 (from 10 Ohm run)
+    V20_I1 = deepcopy(R2_V20_I1_10R); PolDivide(V20_I1, R2_V1_I1_10R); PolSmooth(V20_I1)
+    V50_I1 = deepcopy(R2_V50_I1_10R); PolDivide(V50_I1, R2_V1_I1_10R); PolSmooth(V50_I1)
+    V50_I2 = deepcopy(R2_V50_I2_10R); PolDivide(V50_I2, R2_V1_I1_10R); PolSmooth(V50_I2)
+    V50_I5 = deepcopy(R2_V50_I5_10R); PolDivide(V50_I5, R2_V1_I1_10R); PolSmooth(V50_I5)
+    V50_I10 = deepcopy(R2_V50_I10_10R); PolDivide(V50_I10, R2_V1_I1_10R); PolSmooth(V50_I10)
+    V50_I20 = deepcopy(R2_V50_I20_10R); PolDivide(V50_I20, R2_V1_I1_10R); PolSmooth(V50_I20)
+    V50_I50 = deepcopy(R2_V50_I50_10R); PolDivide(V50_I50, R2_V1_I1_10R); PolSmooth(V50_I50)
+    V100_I1 = deepcopy(R2_V100_I1_10R); PolDivide(V100_I1, R2_V1_I1_10R); # smooth later
+    V100_I2 = deepcopy(R2_V100_I2_10R); PolDivide(V100_I2, R2_V1_I1_10R); PolSmooth(V100_I2)
+    V100_I5 = deepcopy(R2_V100_I5_10R); PolDivide(V100_I5, R2_V1_I1_10R); PolSmooth(V100_I5)
+    V100_I10 = deepcopy(R2_V100_I10_10R); PolDivide(V100_I10, R2_V1_I1_10R); PolSmooth(V100_I10)
+    V100_I20 = deepcopy(R2_V100_I20_10R); PolDivide(V100_I20, R2_V1_I1_10R); PolSmooth(V100_I20)
+    V100_I50 = deepcopy(R2_V100_I50_10R); PolDivide(V100_I50, R2_V1_I1_10R); PolSmooth(V100_I50)
+    V200_I1 = deepcopy(R2_V200_I1_10R); PolDivide(V200_I1, R2_V1_I1_10R); PolSmooth(V200_I1)
+    V200_I2 = deepcopy(R2_V200_I2_10R); PolDivide(V200_I2, R2_V1_I1_10R); PolSmooth(V200_I2)
+    V200_I5 = deepcopy(R2_V200_I5_10R); PolDivide(V200_I5, R2_V1_I1_10R); PolSmooth(V200_I5)
+    V200_I10 = deepcopy(R2_V200_I10_10R); PolDivide(V200_I10, R2_V1_I1_10R); PolSmooth(V200_I10)
+    V200_I20 = deepcopy(R2_V200_I20_10R); PolDivide(V200_I20, R2_V1_I1_10R); PolSmooth(V200_I20)
+    V200_I50 = deepcopy(R2_V200_I50_10R); PolDivide(V200_I50, R2_V1_I1_10R); PolSmooth(V200_I50)
+
+    #VGains 500, 1000 (from 1 Ohm run)
+    V500_I1 = deepcopy(R2_V500_I1_1R)
+    PolDivide(V500_I1, R2_V100_I1_1R); PolMult(V500_I1, V100_I1); PolSmooth(V500_I1)
+    V1000_I1 = deepcopy(R2_V1000_I1_1R)
+    PolDivide(V1000_I1, R2_V100_I1_1R); PolMult(V1000_I1, V100_I1); PolSmooth(V1000_I1)
+    PolSmooth(V100_I1)
+
+    # IGains 20, 50, 100 (from 1kOhm run)
+    V1_I20 = deepcopy(R2_V1_I20_1k)
+    PolDivide(V1_I20, R2_V1_I10_1k); PolMult(V1_I20, V1_I10); PolSmooth(V1_I20)
+    V1_I50 = deepcopy(R2_V1_I50_1k)
+    PolDivide(V1_I50, R2_V1_I10_1k); PolMult(V1_I50, V1_I10); PolSmooth(V1_I50)
+    V1_I100 = deepcopy(R2_V1_I100_1k)
+    PolDivide(V1_I100, R2_V1_I10_1k); PolMult(V1_I100, V1_I10) #smooth later
+    PolSmooth(V1_I10)
+
+    # IGains 200, 500, 1000 (from 10kOhm run)
+    V1_I200 = deepcopy(R2_V1_I200_10k)
+    PolDivide(V1_I200, R2_V1_I100_10k); PolMult(V1_I200, V1_I100); PolSmooth(V1_I200)
+    V1_I500 = deepcopy(R2_V1_I500_10k)
+    PolDivide(V1_I500, R2_V1_I100_10k); PolMult(V1_I500, V1_I100); PolSmooth(V1_I500)
+    V1_I1000 = deepcopy(R2_V1_I1000_10k)
+    PolDivide(V1_I1000, R2_V1_I100_10k); PolMult(V1_I1000, V1_I100); PolSmooth(V1_I1000)
+    PolSmooth(V1_I100)
 
     #range2
     normalize(range2)
@@ -354,15 +432,20 @@ else:
     PolMult(range3, range2)
 
     #range4
+    #calculate R3_V10_I1(alt)
+    #R3_V10_I1_1k_calc = deepcopy(R3_V10_I10_1k)
+    #PolDivide(R3_V10_I1_1k_calc, V10_I10)
+    #PolMult(R3_V10_I1_1k_calc, V10_I1)
+
     range4 = deepcopy(R4_V10_I1_1k)
-    PolDivide(range4, R3_V10_I1_1k)
+    PolDivide(range4, R3_V10_I1_1k)    #PolDivide(range4, R3_V10_I1_1k_calc)
     normalize(range4)
     range4 = PolInv(range4)
     PolMult(range4, range3)
 
     #range5
     range5 = deepcopy(R5_V10_I1_1k)
-    PolDivide(range5, R3_V10_I1_1k)
+    PolDivide(range5, R3_V10_I1_1k)    #PolDivide(range5, R3_V10_I1_1k_calc)
     normalize(range5)
     range5 = PolInv(range5)
     PolMult(range5, range3)
@@ -385,64 +468,24 @@ else:
     range8 = PolInv(range8)
     PolMult(range8, range6)
 
-    # I/V Gains 1, 2, 5, 10 (from 100 Ohm run)
-    V2_I1 = deepcopy(R2_V2_I1_100R)
-    PolDivide(V2_I1, H_BaselineV); PolSmooth(V2_I1)
-    V5_I1 = deepcopy(R2_V5_I1_100R)
-    PolDivide(V5_I1, H_BaselineV); PolSmooth(V5_I1)
-    V10_I1 = deepcopy(R2_V10_I1_100R)
-    PolDivide(V10_I1, H_BaselineV); PolSmooth(V10_I1)
-    V1_I2 = deepcopy(R2_V1_I2_100R)
-    PolDivide(V1_I2, H_BaselineV); PolSmooth(V1_I2)
-    V1_I5 = deepcopy(R2_V1_I5_100R)
-    PolDivide(V1_I5, H_BaselineV); PolSmooth(V1_I51)
-    V1_I10 = deepcopy(R2_V1_I10_100R)
-    PolDivide(V1_I10, H_BaselineV); # smooth later
+    #****************************************** debugging section ***********************************************
 
-    # VGains 20, 50, 100 (from 10 Ohm run)
-    V50_I1 = deepcopy(R2_V50_I1_10R); PolDivide(V50_I1, R2_V1_I1_10R); PolSmooth(V50_I1)
-    V50_I2 = deepcopy(R2_V50_I2_10R); PolDivide(V50_I2, R2_V1_I1_10R); PolSmooth(V50_I2)
-    V50_I5 = deepcopy(R2_V50_I5_10R); PolDivide(V50_I5, R2_V1_I1_10R); PolSmooth(V50_I5)
-    V50_I10 = deepcopy(R2_V50_I10_10R); PolDivide(V50_I10, R2_V1_I1_10R); PolSmooth(V50_I10)
-    V50_I20 = deepcopy(R2_V50_I20_10R); PolDivide(V50_I20, R2_V1_I1_10R); PolSmooth(V50_I20)
-    V50_I50 = deepcopy(R2_V50_I50_10R); PolDivide(V50_I50, R2_V1_I1_10R); PolSmooth(V50_I50)
-    V100_I1 = deepcopy(R2_V100_I1_10R); PolDivide(V100_I1, R2_V1_I1_10R); # smooth later
-    V100_I2 = deepcopy(R2_V100_I2_10R); PolDivide(V100_I2, R2_V1_I1_10R); PolSmooth(V100_I2)
-    V100_I5 = deepcopy(R2_V100_I5_10R); PolDivide(V100_I5, R2_V1_I1_10R); PolSmooth(V100_I5)
-    V100_I10 = deepcopy(R2_V100_I10_10R); PolDivide(V100_I10, R2_V1_I1_10R); PolSmooth(V100_I10)
-    V100_I20 = deepcopy(R2_V100_I20_10R); PolDivide(V100_I20, R2_V1_I1_10R); PolSmooth(V100_I20)
-    V100_I50 = deepcopy(R2_V100_I50_10R); PolDivide(V100_I50, R2_V1_I1_10R); PolSmooth(V100_I50)
-    V200_I1 = deepcopy(R2_V200_I1_10R); PolDivide(V200_I1, R2_V1_I1_10R); PolSmooth(V200_I1)
-    V200_I2 = deepcopy(R2_V200_I2_10R); PolDivide(V200_I2, R2_V1_I1_10R); PolSmooth(V200_I2)
-    V200_I5 = deepcopy(R2_V200_I5_10R); PolDivide(V200_I5, R2_V1_I1_10R); PolSmooth(V200_I5)
-    V200_I10 = deepcopy(R2_V200_I10_10R); PolDivide(V200_I10, R2_V1_I1_10R); PolSmooth(V200_I10)
-    V200_I20 = deepcopy(R2_V200_I20_10R); PolDivide(V200_I20, R2_V1_I1_10R); PolSmooth(V200_I20)
-    V200_I50 = deepcopy(R2_V200_I50_10R); PolDivide(V200_I50, R2_V1_I1_10R); PolSmooth(V200_I50)
+    #r3_1k_05ac = popSweep(parseRawCSV(basefolder + 'r3_v10_i10_1k_05ac/'))
+    #r3_1k_04ac = popSweep(parseRawCSV(basefolder + 'r3_v10_i10_1k_04ac/'))
+    #r3_1k_03ac = popSweep(parseRawCSV(basefolder + 'r3_v10_i10_1k_03ac/'))
+    #r3_1k_02ac = popSweep(parseRawCSV(basefolder + 'r3_v10_i10_1k_02ac/'))
+    #r3_1k_01ac = popSweep(parseRawCSV(basefolder + 'r3_v10_i10_1k_01ac/'))
+    #PolDivide(r3_1k_04ac, r3_1k_05ac)
+    #PolDivide(r3_1k_03ac, r3_1k_05ac)
+    #PolDivide(r3_1k_02ac, r3_1k_05ac)
+    #PolDivide(r3_1k_01ac, r3_1k_05ac)
+    #x = [[['40mV']], r3_1k_04ac, [['30mV']], r3_1k_03ac, [['20mV']], r3_1k_02ac, [['10mV']], r3_1k_01ac]
+    #writeCSV(basefolder + 'amp_comparison.csv', x)
 
-    #VGains 200, 500, 1000 (from 1 Ohm run)
-    V500_I1 = deepcopy(R2_V500_I1_1R)
-    PolDivide(V500_I1, R2_V100_I1_1R); PolMult(V500_I1, V100_I1); PolSmooth(V500_I1)
-    V1000_I1 = deepcopy(R2_V1000_I1_1R)
-    PolDivide(V1000_I1, R2_V100_I1_1R); PolMult(V1000_I1, V100_I1); PolSmooth(V1000_I1)
-    PolSmooth(V100_I1)
-
-    # IGains 20, 50, 100 (from 1kOhm run)
-    V1_I20 = deepcopy(R2_V1_I20_1k)
-    PolDivide(V1_I20, R2_V1_I10_1k); PolMultiply(V1_I20, V1_I10); PolSmooth(V1_I20)
-    V1_I50 = deepcopy(R2_V1_I50_1k)
-    PolDivide(V1_I50, R2_V1_I10_1k); PolMultiply(V1_I50, V1_I10); PolSmooth(V1_I50)
-    V1_I100 = deepcopy(R2_V1_I100_1k)
-    PolDivide(V1_I100, R2_V1_I10_1k); PolMultiply(V1_I100, V1_I10) #smooth later
-    PolSmooth(V1_I10)
-
-    # IGains 200, 500, 1000 (from 10kOhm run)
-    V1_I200 = deepcopy(R2_V1_I200_10k)
-    PolDivide(V1_I200, R2_V1_I100_10k); PolMultiply(V1_I200, V1_I100); PolSmooth(V1_I200)
-    V1_I500 = deepcopy(R2_V1_I500_10k)
-    PolDivide(V1_I500, R2_V1_I100_10k); PolMultiply(V1_I500, V1_I100); PolSmooth(V1_I500)
-    V1_I1000 = deepcopy(R2_V1_I1000_10k)
-    PolDivide(V1_I1000, R2_V1_I100_10k); PolMultiply(V1_I1000, V1_I100); PolSmooth(V1_I1000)
-    PolSmooth(V1_I100)
+    #r3_1k = popSweep(parseRawCSV(basefolder + 'r3_v10_i10_1k_05ac/'))
+    #r3_100R = popSweep(parseRawCSV(basefolder + 'r3_v10_i10_100R_01ac/'))
+    #PolDivide(r3_1k, r3_100R)
+    #writeCSV(basefolder + '1k_curve.csv', r3_1k)
 
     #****************************************** write CSV files ***********************************************
     writeCSV(basefolder + 'WEgain1_Igain2.csv', V1_I2)
@@ -457,6 +500,7 @@ else:
     writeCSV(basefolder + 'WEgain2_Igain1.csv', V2_I1)
     writeCSV(basefolder + 'WEgain5_Igain1.csv', V5_I1)
     writeCSV(basefolder + 'WEgain10_Igain1.csv', V10_I1)
+    #writeCSV(basefolder + 'WEgain10_Igain10.csv', V10_I10)
     writeCSV(basefolder + 'WEgain20_Igain1.csv', V20_I1)
     writeCSV(basefolder + 'WEgain50_Igain1.csv', V50_I1)
     writeCSV(basefolder + 'WEgain50_Igain2.csv', V50_I2)
@@ -491,94 +535,108 @@ else:
 
     # write "dummy" files
     dummyData = [[1000000, 1, 0], [1, 1, 0]]
+    V1_I1 = deepcopy(dummyData)
     writeCSV(basefolder + 'V_inputBuffer.csv', dummyData)
-    writeCSV(basefolder + 'WEgain1_Igain1.csv', dummyData)
+    writeCSV(basefolder + 'WEgain1_Igain1.csv', V1_I1)
+
+    #****************************** data testing section*******************************************
+    results = []
+
+    # 1 Ohm Sweeps
+    results += [['1 Ohm sweeps']]
+    DataList = [R2_V100_I1_1R, R2_V500_I1_1R, R2_V1000_I1_1R]
+    RangeList = [range2, range2, range2]
+    GainList1 = [V100_I1, V500_I1, V1000_I1]
+    for i in range(0, len(DataList)):
+        data = deepcopy(DataList[i])
+        PolMult(data, RangeList[i])
+        PolDivide(data, GainList1[i])
+        results += data
+
+    # 10 Ohm Sweeps, Range0/Range1
+    results += [['10 Ohm sweeps, Range0/1']]
+    DataList = [R2_V1_I1_10R, R2_V10_I1_10R, R1_V10_I1_10R, R1_V10_I10_10R, R0_V10_I10_10R]
+    RangeList = [range2, range2, range1, range1, range0]
+    GainList1 = [V1_I1, V10_I1, V10_I1, V10_I1, V10_I1]
+    GainList2 = [V1_I1, V10_I1, V10_I1, V1_I10, V1_I10]
+    for i in range(0, len(DataList)):
+        data = deepcopy(DataList[i])
+        PolMult(data, RangeList[i])
+        PolDivide(data, GainList1[i])
+        PolDivide(data, GainList2[i])
+        results += data
+
+    # 10 Ohm Sweeps, Vgain50/100/200
+    results += [['10 Ohm sweeps, Vgain50/100/200']]
+    DataList = [R2_V20_I1_10R, R2_V50_I1_10R, R2_V50_I2_10R, R2_V50_I5_10R, R2_V50_I10_10R, R2_V50_I20_10R, R2_V50_I50_10R,
+                R2_V100_I1_10R, R2_V100_I2_10R, R2_V100_I5_10R, R2_V100_I10_10R, R2_V100_I20_10R, R2_V100_I50_10R,
+                R2_V200_I1_10R, R2_V200_I2_10R, R2_V200_I5_10R, R2_V200_I10_10R, R2_V200_I20_10R, R2_V200_I50_10R]
+    RangeList = [range2, range2, range2, range2, range2, range2, range2,
+                 range2, range2, range2, range2, range2, range2,
+                 range2, range2, range2, range2, range2, range2]
+    GainList1 = [V20_I1, V50_I1, V50_I2, V50_I5, V50_I10, V50_I20, V50_I50,
+                 V100_I1, V100_I2, V100_I5, V100_I10, V100_I20, V100_I50,
+                 V200_I1, V200_I2, V200_I5, V200_I10, V200_I20, V200_I50]
+    for i in range(0, len(DataList)):
+        data = deepcopy(DataList[i])
+        PolMult(data, RangeList[i])
+        PolDivide(data, GainList1[i])
+        results += data
+
+    # 100 Ohm Sweeps
+    results += [['100 Ohm sweeps']]
+    DataList = [R2_V1_I1_100R, R2_V2_I1_100R, R2_V5_I1_100R, R2_V10_I1_100R, R2_V10_I10_100R, R2_V1_I2_100R, R2_V1_I5_100R, R2_V1_I10_100R, R3_V10_I1_100R]
+    RangeList = [range2, range2, range2, range2, range2, range2, range2, range2, range3]
+    GainList1 = [V1_I1, V2_I1, V5_I1, V10_I1, V10_I10, V1_I2, V1_I5, V1_I10, V10_I1]
+    for i in range(0, len(DataList)):
+        data = deepcopy(DataList[i])
+        PolMult(data, RangeList[i])
+        PolDivide(data, GainList1[i])
+        results += data
+
+    # 1kOhm Sweeps
+    results += [['1kOhm sweeps']]
+    DataList = [R2_V1_I10_1k, R2_V1_I20_1k, R2_V1_I50_1k, R2_V1_I100_1k, R3_V10_I10_1k, R4_V10_I1_1k, R5_V10_I1_1k]
+    RangeList = [range2, range2, range2, range2, range3, range4, range5]
+    GainList1 = [V1_I10, V1_I20, V1_I50, V1_I100, V10_I10, V10_I1, V10_I1]
+    for i in range(0, len(DataList)):
+        data = deepcopy(DataList[i])
+        PolMult(data, RangeList[i])
+        PolDivide(data, GainList1[i])
+        results += data
+
+    # 10kOhm Sweeps
+    results += [['10kOhm sweeps']]
+    DataList = [R2_V1_I100_10k, R2_V1_I200_10k, R2_V1_I500_10k, R2_V1_I1000_10k]
+    RangeList = [range2, range2, range2, range2]
+    GainList1 = [V1_I100, V1_I200, V1_I500, V1_I1000]
+    for i in range(0, len(DataList)):
+        data = deepcopy(DataList[i])
+        PolMult(data, RangeList[i])
+        PolDivide(data, GainList1[i])
+        results += data
+
+    # 100kOhm Sweeps
+    results += [['100kOhm sweeps']]
+    DataList = [R5_V10_I1_100k, R6_V10_I1_100k]
+    RangeList = [range5, range6]
+    GainList1 = [V10_I1, V10_I1]
+    for i in range(0, len(DataList)):
+        data = deepcopy(DataList[i])
+        PolMult(data, RangeList[i])
+        PolDivide(data, GainList1[i])
+        results += data
+
+    # 10MOhm Sweeps
+    results += [['10MOhm sweeps']]
+    DataList = [R6_V10_I100_10M, R8_V10_I1_10M]
+    RangeList = [range6, range8]
+    for i in range(0, len(DataList)):
+        data = deepcopy(DataList[i])
+        PolMult(data, RangeList[i])
+        results += data
+
+    writeCSV(basefolder + '/testresults.csv', results)
 
 print("Script complete, press enter to close this window...")
 input()
-
-#V1_I1 = deepcopy(H_BaselineV)
-#PolDivideCol_2_3(V1_I1, H_BaselineV)
-
-
-# data testing section*************************************************************************
-#rawSquidstatData = parseRawCSV(basefolder + '/squidstatRawData2.csv') # re-import data
-#InvertPhase(rawSquidstatData)
-#results = []
-
-#V1 = V1_I1
-#V2 = V2_I1
-#V5 = V5_I1
-#V10 = V10_I1
-#V20 = V20_I10
-#V50 = V50_I10
-#V100 = V100_I10
-#I1 = V1_I1
-#I2 = I2_V1
-#I5 = I5_V1
-#I10 = I10_V1
-#I20 = I20_V10
-#I50 = I50_V10
-#I100 = I100_V10
-
-##group 1
-#VgainList = [V1, V2, V5, V10, V1, V1, V1]
-#IgainList = [I1, I1, I1, I1, I2, I5, I10]
-#for i in range(0, len(VgainList)):
-#    data = popSweep(rawSquidstatData)
-#    PolDivideCol_2_3(data, H_BaselineV)
-#    PolDivideCol_2_3(data, VgainList[i])
-#    PolMultCol_2_3(data, IgainList[i])
-#    results += data
-
-##group 2
-#VgainList = [V10, V20, V50, V100, V10, V10, V10]
-#IgainList = [I10, I10, I10, I10, I20, I50, I100]
-#for i in range(0, len(VgainList)):
-#    data = popSweep(rawSquidstatData)
-#    PolDivideCol_2_3(data, H_BaselineV)
-#    PolDivideCol_2_3(data, VgainList[i])
-#    PolMultCol_2_3(data, IgainList[i])
-#    results += data
-
-##group 3
-#VgainList = [V10, V20, V50, V100, V50, V50, V50]
-#IgainList = [I50, I50, I50, I50, I20, I50, I100]
-#for i in range(0, len(VgainList)):
-#    data = popSweep(rawSquidstatData)
-#    PolDivideCol_2_3(data, H_BaselineV)
-#    PolDivideCol_2_3(data, VgainList[i])
-#    PolMultCol_2_3(data, IgainList[i])
-#    results += data
-
-##group 4
-#VgainList = [V10, V20, V50, V100, V20, V20, V20]
-#IgainList = [I20, I20, I20, I20, I20, I50, I100]
-#for i in range(0, len(VgainList)):
-#    data = popSweep(rawSquidstatData)
-#    PolDivideCol_2_3(data, H_BaselineV)
-#    PolDivideCol_2_3(data, VgainList[i])
-#    PolMultCol_2_3(data, IgainList[i])
-#    results += data
-
-##group 5
-#VgainList = [V10, V20, V50, V100, V100, V100, V100]
-#IgainList = [I100, I100, I100, I100, I20, I50, I100]
-#for i in range(0, len(VgainList)):
-#    data = popSweep(rawSquidstatData)
-#    PolDivideCol_2_3(data, H_BaselineV)
-#    PolDivideCol_2_3(data, VgainList[i])
-#    PolMultCol_2_3(data, IgainList[i])
-#    results += data
-
-##group 6
-#VgainList = [V10, V20, V50, V100, V1, V1, V1]
-#IgainList = [I1, I1, I1, I1, I20, I50, I100]
-#for i in range(0, len(VgainList)):
-#    data = popSweep(rawSquidstatData)
-#    PolDivideCol_2_3(data, H_BaselineV)
-#    PolDivideCol_2_3(data, VgainList[i])
-#    PolMultCol_2_3(data, IgainList[i])
-#    results += data
-
-#writeCSV(basefolder + '/testresults.csv', results)

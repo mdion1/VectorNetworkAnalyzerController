@@ -1,10 +1,39 @@
 from copy import deepcopy
+import statistics
+from numpy import percentile
+
+def areApproximatelyEqual(x, y, margin = 0.001):
+    upperLim = y * (1 + margin)
+    lowerLim = y * (1 - margin)
+    if y > 0:
+        return ((x >= lowerLim) and (x <= upperLim))
+    else:
+        return ((x >= upperLim) and (x <= lowerLim))
+
+def doesNumberApproximatelyMatchListEntry(number, list):
+    for i in range(0, len(list)):
+        if areApproximatelyEqual(number, list[i]):
+            return True
+    return False
+
+def findOutliers(maglist, phaselist, margin = 1.5):
+    #outliers are based on maglist data, since clipping doesn't affect the phase as much
+    q25 = percentile(maglist, 25)
+    q75 = percentile(maglist, 75)
+    iqr = q75 - q25
+    cut_off = iqr * margin
+    lower, upper = q25 - cut_off, q75 + cut_off
+    for i in range(len(maglist) - 1, -1, -1):    # loop thru indices in descending order
+        if maglist[i] < lower or maglist[i] > upper:
+            maglist.pop(i)
+            phaselist.pop(i)
 
 class experimentDataSet:
     def __init__(self, rawdata, DatasetName = 'Dataset'):
         self.sweepParameters = []
         self.rawData = []
         self.dataName = DatasetName
+        self.sweepStats = [[DatasetName]]
         temp = deepcopy(rawdata)
         while len(temp) > 0:
             self.rawData.append(self.popSweep(temp))
@@ -44,27 +73,29 @@ class experimentDataSet:
         return datasetComplete
 
     def popSweep(self, masterTable):
-            ret = []
+        ret = []
+        sweepStatTable = []
+        while True:
+            mag = []
+            phase = []
+            freq = 0
             while True:
-                mag = 0
-                phase = 0
-                freq = 0
-                IsigMag = 0
-                N = 0
-                while True:
-                    row = masterTable.pop(0)
-                    freq = row[0]
-                    mag += row[1]
-                    phase += row[2]
-                    if len(row) > 3:
-                        IsigMag += row[3]
-                    N += 1
-                    if (len(masterTable) == 0) or (masterTable[0][0] != freq):
-                        break
-                ret.append([freq, mag / N, phase / N])
-                if (len(masterTable) == 0) or (masterTable[0][0] > freq):
+                row = masterTable.pop(0)
+                freq = row[0]
+                mag.append(row[1])
+                phase.append(row[2])
+                if (len(masterTable) == 0) or (masterTable[0][0] != freq):
                     break
-            return ret
+            findOutliers(mag, phase, margin = 5)
+            avg_mag = statistics.mean(mag)
+            ret.append([freq, avg_mag, statistics.mean(phase)])
+            sweepStatTable.append([freq, statistics.stdev(mag) / avg_mag, (max(mag) - min(mag)) /avg_mag, statistics.stdev(phase), max(phase) - min(phase)])
+            if (len(masterTable) == 0) or (masterTable[0][0] > freq):
+                break
+        self.sweepStats.append(sweepStatTable)
+        return ret
+    def getStats(self):
+        return self.sweepStats
 
 class sweepParams:
     def __init__(self):
@@ -74,7 +105,7 @@ class sweepParams:
     def checkForCompleteness(self, frequenciesPresent, outStringList = []):
         sweepComplete = True
         for frequency in self.frequencyList:
-            if not (frequency in frequenciesPresent):
+            if not doesNumberApproximatelyMatchListEntry(frequency, frequenciesPresent):
                 sweepComplete = False
                 outStringList.append('\t\tMissing frequency: ' + str(frequency) + 'Hz\n')
         return sweepComplete
