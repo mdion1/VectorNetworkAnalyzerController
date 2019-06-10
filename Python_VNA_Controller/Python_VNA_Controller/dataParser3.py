@@ -222,7 +222,7 @@ allSweepStats += dataParseCheck.getStats()
 rawData100R = parseRawCSV(basefolder + '100 Ohm run/')
 InvertPhase(rawData100R)
 dataParseCheck = experimentDataSet(rawData100R, DatasetName = '100 Ohm Run')
-for i in range(0, 8):   #for i in range(0, 9):
+for i in range(0, 9):
     dataParseCheck.addSweep(FrequencyList = FrequencyList_1M_to_1k)
 DataComplete &= dataParseCheck.checkForCompleteness(ErrorStrList)
 allSweepStats += dataParseCheck.getStats()
@@ -314,7 +314,7 @@ else:
     R2_V1_I2_100R = popSweep(rawData100R)
     R2_V1_I5_100R = popSweep(rawData100R)
     R2_V1_I10_100R = popSweep(rawData100R)
-    #R2_V10_I10_100R = popSweep(rawData100R)
+    R2_V10_I10_100R = popSweep(rawData100R)
     R3_V10_I1_100R = popSweep(rawData100R)
 
     # 1kOhm run
@@ -322,7 +322,7 @@ else:
     R2_V1_I20_1k = popSweep(rawData1k)
     R2_V1_I50_1k = popSweep(rawData1k)
     R2_V1_I100_1k = popSweep(rawData1k)
-    R3_V10_I1_1k = popSweep(rawData1k)  #R3_V10_I10_1k = popSweep(rawData1k)
+    R3_V10_I10_1k = popSweep(rawData1k)
     R4_V10_I1_1k = popSweep(rawData1k)
     R5_V10_I1_1k = popSweep(rawData1k)
 
@@ -357,8 +357,8 @@ else:
     PolDivide(V1_I5, H_BaselineV); PolSmooth(V1_I5)
     V1_I10 = deepcopy(R2_V1_I10_100R)
     PolDivide(V1_I10, H_BaselineV); # smooth later
-    #V10_I10 = deepcopy(R2_V10_I10_100R)
-    #PolDivide(V10_I10, H_BaselineV); PolSmooth(V10_I10)
+    V10_I10 = deepcopy(R2_V10_I10_100R)
+    PolDivide(V10_I10, H_BaselineV); PolSmooth(V10_I10)
 
     # VGains 20, 50, 100 (from 10 Ohm run)
     V20_I1 = deepcopy(R2_V20_I1_10R); PolDivide(V20_I1, R2_V1_I1_10R); PolSmooth(V20_I1)
@@ -433,19 +433,19 @@ else:
 
     #range4
     #calculate R3_V10_I1(alt)
-    #R3_V10_I1_1k_calc = deepcopy(R3_V10_I10_1k)
-    #PolDivide(R3_V10_I1_1k_calc, V10_I10)
-    #PolMult(R3_V10_I1_1k_calc, V10_I1)
+    R3_V10_I1_1k_calc = deepcopy(R3_V10_I10_1k)
+    PolDivide(R3_V10_I1_1k_calc, V10_I10)
+    PolMult(R3_V10_I1_1k_calc, V10_I1)
 
     range4 = deepcopy(R4_V10_I1_1k)
-    PolDivide(range4, R3_V10_I1_1k)    #PolDivide(range4, R3_V10_I1_1k_calc)
+    PolDivide(range4, R3_V10_I1_1k_calc)
     normalize(range4)
     range4 = PolInv(range4)
     PolMult(range4, range3)
 
     #range5
     range5 = deepcopy(R5_V10_I1_1k)
-    PolDivide(range5, R3_V10_I1_1k)    #PolDivide(range5, R3_V10_I1_1k_calc)
+    PolDivide(range5, R3_V10_I1_1k_calc)
     normalize(range5)
     range5 = PolInv(range5)
     PolMult(range5, range3)
@@ -500,7 +500,7 @@ else:
     writeCSV(basefolder + 'WEgain2_Igain1.csv', V2_I1)
     writeCSV(basefolder + 'WEgain5_Igain1.csv', V5_I1)
     writeCSV(basefolder + 'WEgain10_Igain1.csv', V10_I1)
-    #writeCSV(basefolder + 'WEgain10_Igain10.csv', V10_I10)
+    writeCSV(basefolder + 'WEgain10_Igain10.csv', V10_I10)
     writeCSV(basefolder + 'WEgain20_Igain1.csv', V20_I1)
     writeCSV(basefolder + 'WEgain50_Igain1.csv', V50_I1)
     writeCSV(basefolder + 'WEgain50_Igain2.csv', V50_I2)
