@@ -2,18 +2,16 @@ import sys
 import csv
 import math
 import cmath
-import glob
 from copy import deepcopy
-import numpy as np
 from scipy.signal import savgol_filter
 from dataParserHelper import experimentDataSet
-from dataParserHelper import findOutliers
-import statistics
-from numpy import percentile
+from dataParserHelper import popSweep
+from dataParserHelper import interpolate
+from dataParserHelper import parseRawCSV
 
 smoothing_on = False
 
-#****************** Helper functions**********************
+#****************** Helper functions **********************
 def PolSmooth(datatable, window = 5, order = 1, re_normalize = True):
     if smoothing_on:
         real_list = []
@@ -38,28 +36,6 @@ def normalize(table):
     for i in range(0,len(table)):
         table[i][1] /= BaseMag
         table[i][2] -= BasePhase
-
-def parseRawCSV(directoryName):
-    dataTable = []
-    filenames = glob.glob(directoryName + "*.csv")
-    if len(filenames) > 0:
-        filename = filenames[0]
-        try:
-            with open(filename) as csv_file:
-                csv_reader = csv.reader(csv_file, delimiter=',')
-        
-                for row in csv_reader:
-                    row_float = []
-                    for i in range(0, len(row)):
-                        try:
-                            row_float.append(float(row[i]))
-                        except ValueError:
-                            continue
-                    if len(row_float) > 0:
-                        dataTable.append(row_float)
-        except:
-            return dataTable
-    return dataTable
 
 def writeRow(csvwriter, datarow):
     if isinstance(datarow, list):
@@ -125,38 +101,6 @@ def PolSubtract(baseTable, auxTable):
         baseTable[i][1] = abs(diff)
         baseTable[i][2] = cmath.phase(diff) * 180 / math.pi
 
-def interpolate(x, lookupTable, ycol = 1, semilog = True):
-    #make sure table is sorted in descending order (by first column)
-    if(lookupTable[0][0] < lookupTable[-1][0]):
-        lookupTable.sort(key = sortByFirstElement)
-
-    #if x is outside the bounds of the table, return one of the bounding values
-    if x >= lookupTable[0][0]:
-        return lookupTable[0][ycol]
-    elif x <= lookupTable[-1][0]:
-        return lookupTable[-1][ycol]
-    #else interpolate
-    else:
-        indexR = 1
-        for i in range(1, len(lookupTable)):
-            if x > lookupTable[indexR][0]:
-                break
-            else:
-                indexR += 1
-        indexL = indexR - 1
-        xL = 0.0; xR = 0.0; xi = x
-        if (semilog):
-            xL = math.log10(lookupTable[indexL][0])
-            xR = math.log10(lookupTable[indexR][0])
-            xi = math.log10(x)
-        else:
-            xL = lookupTable[indexL][0]
-            xR = lookupTable[indexR][0]
-        yL = lookupTable[indexL][ycol]
-        yR = lookupTable[indexR][ycol]
-        yi = yL + (xi - xL) / (xR - xL) * (yR - yL)
-        return yi
-
 def sortByFirstElement(val):
     return val[0]
 
@@ -165,27 +109,6 @@ def ScalarMult(baseTable, scalar):
     for i in range(0, len(baseTable)):
         baseTable[i][1] *= scalar
 
-def popSweep(masterTable):
-    ret = []
-    while True:
-        mag = []
-        phase = []
-        freq = 0
-        while True:
-            row = masterTable.pop(0)
-            freq = row[0]
-            mag.append(row[1])
-            phase.append(row[2])
-            if (len(masterTable) == 0) or (masterTable[0][0] != freq):
-                break
-        findOutliers(mag, phase, margin = 5)
-        avg_mag = statistics.mean(mag)
-        ret.append([freq, avg_mag, statistics.mean(phase)])
-        if (len(masterTable) == 0) or (masterTable[0][0] > freq):
-            break
-    return ret
-
-
 #*************** Main script ****************************
 basefolder = sys.argv[1]
 if not (basefolder[-1] == '\\' or basefolder[-1] == '/'):
@@ -193,7 +116,7 @@ if not (basefolder[-1] == '\\' or basefolder[-1] == '/'):
 
 DataComplete = True
 ErrorStrList = []
-allSweepStats = []
+#allSweepStats = []
 FrequencyList_1M_to_1k = [995000, 794999.9375, 634999.9375, 504999.9688, 398107.1562, 316227.6875, 251188.5938, 199526.1719, 158489.3125, 125892.4609, 99999.92188, 79419.92969, 63095.70703, 50118.66016, 39810.6875, 31622.68555, 25118.79492, 19952.5625, 15848.875, 12589.24609, 9999.983398, 6309.524414, 3981.054688, 2511.881836, 1584.889893, 999.9959717]
 FrequencyList_10k_to_100 = [9999.983398, 6309.570801, 3981.054688, 2511.881836, 1584.889893, 999.9959717, 630.9564819, 398.1054688, 251.1878815, 158.4892731, 99.99930573]
 FrequencyList_10k_to_1 = [9999.983398, 6309.570801, 3981.054688, 2511.881836, 1584.889893, 999.9959717, 630.9564819, 398.1054688, 251.1878815, 158.4892731, 99.99930573, 63.09564972, 39.81058502, 25.11878777, 15.84885502, 9.999984741, 6.309528351, 3.981062889, 2.511876583, 1.584885478, 0.9999951124]
@@ -207,7 +130,7 @@ dataParseCheck = experimentDataSet(rawData1R, DatasetName = '1 Ohm Run')
 for i in range(0, 3):
     dataParseCheck.addSweep(FrequencyList = FrequencyList_1M_to_1k)
 DataComplete &= dataParseCheck.checkForCompleteness(ErrorStrList)
-allSweepStats += dataParseCheck.getStats()
+#allSweepStats += dataParseCheck.getStats()
 
 # import raw data from "10 Ohm Run" experiment
 rawData10R = parseRawCSV(basefolder + '10 Ohm run/')
@@ -216,7 +139,7 @@ dataParseCheck = experimentDataSet(rawData10R, DatasetName = '10 Ohm Run')
 for i in range(0, 24):
     dataParseCheck.addSweep(FrequencyList = FrequencyList_1M_to_1k)
 DataComplete &= dataParseCheck.checkForCompleteness(ErrorStrList)
-allSweepStats += dataParseCheck.getStats()
+#allSweepStats += dataParseCheck.getStats()
 
 # import raw data from "100 Ohm Run" experiment
 rawData100R = parseRawCSV(basefolder + '100 Ohm run/')
@@ -225,7 +148,7 @@ dataParseCheck = experimentDataSet(rawData100R, DatasetName = '100 Ohm Run')
 for i in range(0, 8):   #for i in range(0, 9):
     dataParseCheck.addSweep(FrequencyList = FrequencyList_1M_to_1k)
 DataComplete &= dataParseCheck.checkForCompleteness(ErrorStrList)
-allSweepStats += dataParseCheck.getStats()
+#allSweepStats += dataParseCheck.getStats()
 
 # import raw data from "1kOhm Run" experiment
 rawData1k = parseRawCSV(basefolder + '1kOhm run/')
@@ -234,7 +157,7 @@ dataParseCheck = experimentDataSet(rawData1k, DatasetName = '1kOhm Run')
 for i in range(0, 7):
     dataParseCheck.addSweep(FrequencyList = FrequencyList_1M_to_1k)
 DataComplete &= dataParseCheck.checkForCompleteness(ErrorStrList)
-allSweepStats += dataParseCheck.getStats()
+#allSweepStats += dataParseCheck.getStats()
 
 # import raw data from "10kOhm Run" experiment
 rawData10k = parseRawCSV(basefolder + '10kOhm run/')
@@ -243,7 +166,7 @@ dataParseCheck = experimentDataSet(rawData10k, DatasetName = '10kOhm Run')
 for i in range(0, 4):
     dataParseCheck.addSweep(FrequencyList = FrequencyList_1M_to_1k)
 DataComplete &= dataParseCheck.checkForCompleteness(ErrorStrList)
-allSweepStats += dataParseCheck.getStats()
+#allSweepStats += dataParseCheck.getStats()
 
 # import raw data from "100kOhm Run" experiment
 rawData100k = parseRawCSV(basefolder + '100kOhm run/')
@@ -252,7 +175,7 @@ dataParseCheck = experimentDataSet(rawData100k, DatasetName = '100kOhm Run')
 dataParseCheck.addSweep(FrequencyList = FrequencyList_10k_to_100)
 dataParseCheck.addSweep(FrequencyList = FrequencyList_10k_to_1)
 DataComplete &= dataParseCheck.checkForCompleteness(ErrorStrList)
-allSweepStats += dataParseCheck.getStats()
+#allSweepStats += dataParseCheck.getStats()
 
 # import raw data from "10MOhm Run" experiment
 rawData10M = parseRawCSV(basefolder + '10MOhm run/')
@@ -261,10 +184,10 @@ dataParseCheck = experimentDataSet(rawData10M, DatasetName = '10MOhm Run')
 dataParseCheck.addSweep(FrequencyList = FrequencyList_100_to_1)
 dataParseCheck.addSweep(FrequencyList = FrequencyList_100_to_100m)
 DataComplete &= dataParseCheck.checkForCompleteness(ErrorStrList)
-allSweepStats += dataParseCheck.getStats()
+#allSweepStats += dataParseCheck.getStats()
 
 #*****************************************************************************************
-writeCSV(basefolder + 'sweep stats.csv', allSweepStats, header = ['Frequency', 'Norm(StDev(Mag))', 'Norm(Range(Mag))', 'StDev(phase)', 'Range(phase)'])
+#writeCSV(basefolder + 'sweep stats.csv', allSweepStats, header = ['Frequency', 'Norm(StDev(Mag))', 'Norm(Range(Mag))', 'StDev(phase)', 'Range(phase)'])
 if not DataComplete:
     logFile = open('C:\\potentiostat\\squidstatcalibrator\\bin\\debug\\ACcalibration_logfile.txt', 'w')
     for substr in ErrorStrList:
@@ -273,72 +196,73 @@ if not DataComplete:
     logFile.close()
 else:
     #****************************************** parse sweeps from each test***********************************************
+    dummyList = []
     # 1 Ohm run
-    R2_V100_I1_1R = popSweep(rawData1R)
-    R2_V500_I1_1R = popSweep(rawData1R)
-    R2_V1000_I1_1R = popSweep(rawData1R)
+    R2_V100_I1_1R, dummyList = popSweep(rawData1R)
+    R2_V500_I1_1R, dummyList = popSweep(rawData1R)
+    R2_V1000_I1_1R, dummyList = popSweep(rawData1R)
 
     # 10 Ohm run -- Range0/Range1 sweeps
-    R2_V1_I1_10R = popSweep(rawData10R)
-    R2_V10_I1_10R = popSweep(rawData10R)
-    R1_V10_I1_10R = popSweep(rawData10R)
-    R1_V10_I10_10R = popSweep(rawData10R)
-    R0_V10_I10_10R = popSweep(rawData10R)
+    R2_V1_I1_10R, dummyList = popSweep(rawData10R)
+    R2_V10_I1_10R, dummyList = popSweep(rawData10R)
+    R1_V10_I1_10R, dummyList = popSweep(rawData10R)
+    R1_V10_I10_10R, dummyList = popSweep(rawData10R)
+    R0_V10_I10_10R, dummyList = popSweep(rawData10R)
 
     # 10 Ohm run -- Vgain50/100/200 sweeps
-    R2_V20_I1_10R = popSweep(rawData10R)
-    R2_V50_I1_10R = popSweep(rawData10R)
-    R2_V50_I2_10R = popSweep(rawData10R)
-    R2_V50_I5_10R = popSweep(rawData10R)
-    R2_V50_I10_10R = popSweep(rawData10R)
-    R2_V50_I20_10R = popSweep(rawData10R)
-    R2_V50_I50_10R = popSweep(rawData10R)
-    R2_V100_I1_10R = popSweep(rawData10R)
-    R2_V100_I2_10R = popSweep(rawData10R)
-    R2_V100_I5_10R = popSweep(rawData10R)
-    R2_V100_I10_10R = popSweep(rawData10R)
-    R2_V100_I20_10R = popSweep(rawData10R)
-    R2_V100_I50_10R = popSweep(rawData10R)
-    R2_V200_I1_10R = popSweep(rawData10R)
-    R2_V200_I2_10R = popSweep(rawData10R)
-    R2_V200_I5_10R = popSweep(rawData10R)
-    R2_V200_I10_10R = popSweep(rawData10R)
-    R2_V200_I20_10R = popSweep(rawData10R)
-    R2_V200_I50_10R = popSweep(rawData10R)
+    R2_V20_I1_10R, dummyList = popSweep(rawData10R)
+    R2_V50_I1_10R, dummyList = popSweep(rawData10R)
+    R2_V50_I2_10R, dummyList = popSweep(rawData10R)
+    R2_V50_I5_10R, dummyList = popSweep(rawData10R)
+    R2_V50_I10_10R, dummyList = popSweep(rawData10R)
+    R2_V50_I20_10R, dummyList = popSweep(rawData10R)
+    R2_V50_I50_10R, dummyList = popSweep(rawData10R)
+    R2_V100_I1_10R, dummyList = popSweep(rawData10R)
+    R2_V100_I2_10R, dummyList = popSweep(rawData10R)
+    R2_V100_I5_10R, dummyList = popSweep(rawData10R)
+    R2_V100_I10_10R, dummyList = popSweep(rawData10R)
+    R2_V100_I20_10R, dummyList = popSweep(rawData10R)
+    R2_V100_I50_10R, dummyList = popSweep(rawData10R)
+    R2_V200_I1_10R, dummyList = popSweep(rawData10R)
+    R2_V200_I2_10R, dummyList = popSweep(rawData10R)
+    R2_V200_I5_10R, dummyList = popSweep(rawData10R)
+    R2_V200_I10_10R, dummyList = popSweep(rawData10R)
+    R2_V200_I20_10R, dummyList = popSweep(rawData10R)
+    R2_V200_I50_10R, dummyList = popSweep(rawData10R)
 
     # 100 Ohm run
-    R2_V1_I1_100R = popSweep(rawData100R)
-    R2_V2_I1_100R = popSweep(rawData100R)
-    R2_V5_I1_100R = popSweep(rawData100R)
-    R2_V10_I1_100R = popSweep(rawData100R)
-    R2_V1_I2_100R = popSweep(rawData100R)
-    R2_V1_I5_100R = popSweep(rawData100R)
-    R2_V1_I10_100R = popSweep(rawData100R)
+    R2_V1_I1_100R, dummyList = popSweep(rawData100R)
+    R2_V2_I1_100R, dummyList = popSweep(rawData100R)
+    R2_V5_I1_100R, dummyList = popSweep(rawData100R)
+    R2_V10_I1_100R, dummyList = popSweep(rawData100R)
+    R2_V1_I2_100R, dummyList = popSweep(rawData100R)
+    R2_V1_I5_100R, dummyList = popSweep(rawData100R)
+    R2_V1_I10_100R, dummyList = popSweep(rawData100R)
     #R2_V10_I10_100R = popSweep(rawData100R)
-    R3_V10_I1_100R = popSweep(rawData100R)
+    R3_V10_I1_100R, dummyList = popSweep(rawData100R)
 
     # 1kOhm run
-    R2_V1_I10_1k = popSweep(rawData1k)
-    R2_V1_I20_1k = popSweep(rawData1k)
-    R2_V1_I50_1k = popSweep(rawData1k)
-    R2_V1_I100_1k = popSweep(rawData1k)
-    R3_V10_I1_1k = popSweep(rawData1k)  #R3_V10_I10_1k = popSweep(rawData1k)
-    R4_V10_I1_1k = popSweep(rawData1k)
-    R5_V10_I1_1k = popSweep(rawData1k)
+    R2_V1_I10_1k, dummyList = popSweep(rawData1k)
+    R2_V1_I20_1k, dummyList = popSweep(rawData1k)
+    R2_V1_I50_1k, dummyList = popSweep(rawData1k)
+    R2_V1_I100_1k, dummyList = popSweep(rawData1k)
+    R3_V10_I1_1k, dummyList = popSweep(rawData1k)  #R3_V10_I10_1k = popSweep(rawData1k)
+    R4_V10_I1_1k, dummyList = popSweep(rawData1k)
+    R5_V10_I1_1k, dummyList = popSweep(rawData1k)
 
     # 10kOhm run
-    R2_V1_I100_10k = popSweep(rawData10k)
-    R2_V1_I200_10k = popSweep(rawData10k)
-    R2_V1_I500_10k = popSweep(rawData10k)
-    R2_V1_I1000_10k = popSweep(rawData10k)
+    R2_V1_I100_10k, dummyList = popSweep(rawData10k)
+    R2_V1_I200_10k, dummyList = popSweep(rawData10k)
+    R2_V1_I500_10k, dummyList = popSweep(rawData10k)
+    R2_V1_I1000_10k, dummyList = popSweep(rawData10k)
 
     # 100kOhm run
-    R5_V10_I1_100k = popSweep(rawData100k)
-    R6_V10_I1_100k = popSweep(rawData100k)
+    R5_V10_I1_100k, dummyList = popSweep(rawData100k)
+    R6_V10_I1_100k, dummyList = popSweep(rawData100k)
 
     # 10MOhm run
-    R6_V10_I100_10M = popSweep(rawData10M)
-    R8_V10_I1_10M = popSweep(rawData10M)
+    R6_V10_I100_10M, dummyList = popSweep(rawData10M)
+    R8_V10_I1_10M, dummyList = popSweep(rawData10M)
 
     #****************************************** calculations ***********************************************
     range2 = deepcopy(R2_V1_I1_100R)

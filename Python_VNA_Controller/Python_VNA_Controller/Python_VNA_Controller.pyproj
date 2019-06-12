@@ -4,7 +4,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>15c46573-9606-40c2-a851-4090b7119d26</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>Python_VNA_Controller.py</StartupFile>
+    <StartupFile>dataParser3.py</StartupFile>
     <SearchPath>
     </SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
@@ -12,8 +12,9 @@
     <Name>Python_VNA_Controller</Name>
     <RootNamespace>Python_VNA_Controller</RootNamespace>
     <LaunchProvider>Standard Python launcher</LaunchProvider>
-    <CommandLineArguments>COM6 COM28 "C:\picoscope_experiments\VNA_runs\powersweep__WEgain1-5.csv" "C:\Users\Matt Dion\Dropbox\Admiral Instruments Dropbox\Squidstat customer records\Plus1136/powersweep__V_inputBuffer_raw.csv"</CommandLineArguments>
+    <CommandLineArguments>"C:\Users\Matt Dion\Dropbox\Admiral Instruments Dropbox\Squidstat customer records\Plus1128"</CommandLineArguments>
     <EnableNativeCodeDebugging>False</EnableNativeCodeDebugging>
+    <IsWindowsApplication>False</IsWindowsApplication>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
     <DebugSymbols>true</DebugSymbols>
@@ -24,6 +25,8 @@
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="dataParser3.py" />
+    <Compile Include="dataParserHelper.py" />
     <Compile Include="experimentRunner.py">
       <SubType>Code</SubType>
     </Compile>
