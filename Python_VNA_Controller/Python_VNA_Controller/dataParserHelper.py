@@ -31,6 +31,10 @@ def parseRawCSV(directoryName):
             return dataTable
     return dataTable
 
+def InvertPhase(baseTable):
+    for i in range(0, len(baseTable)):
+        baseTable[i][2] *= -1
+
 def areApproximatelyEqual(x, y, margin = 0.001, Abs_error = False):
     upperLim = y
     lowerLim = y
@@ -60,24 +64,28 @@ def CompareDatasets(data, baseline, mag_err_margin, phase_err_margin, isStandard
         if isStandardDeviationData:
             if data[i][1] > mag_baseline * (1 + mag_err_margin):
                 ret_indices.append(i)
+                print('stdev mag')
             if data[i][2] > mag_phase * (1 + phase_err_margin):
                 ret_indices.append(i)
+                print('stdev phase')
         else:
             if not areApproximatelyEqual(data[i][1], mag_baseline, margin = mag_err_margin):
                 ret_indices.append(i)
+                print('mag')
             if not areApproximatelyEqual(data[i][2], mag_phase, margin = phase_err_margin, Abs_error = True):
                 ret_indices.append(i)
-    if len(ret_indices) > 0:
-        freqList = getColumn(data, 0)
-        magList = getColumn(data, 1)
-        phaseList = getColumn(data, 2)
-        freqList_base = getColumn(baseline, 0)
-        magList_base = getColumn(baseline, 1)
-        phaseList_base = getColumn(baseline, 2)
-        plt.plot(freqList, magList, 'r')
-        plt.plot(freqList_base, magList_base, 'b')
-        plt.xscale('log')
-        plt.show()
+                print('phase')
+    #if len(ret_indices) > 0:
+    #    freqList = getColumn(data, 0)
+    #    magList = getColumn(data, 1)
+    #    phaseList = getColumn(data, 2)
+    #    freqList_base = getColumn(baseline, 0)
+    #    magList_base = getColumn(baseline, 1)
+    #    phaseList_base = getColumn(baseline, 2)
+    #    plt.plot(freqList, magList, 'r')
+    #    plt.plot(freqList_base, magList_base, 'b')
+    #    plt.xscale('log')
+    #    plt.show()
 
     return ret_indices
 
@@ -143,7 +151,7 @@ def popSweep(masterTable, returnStats = False):
         avg_mag = statistics.mean(mag)
         ret.append([freq, avg_mag, statistics.mean(phase)])
         if returnStats:
-            sweepStatTable.append([freq, statistics.stdev(mag) / avg_mag, (max(mag) - min(mag)) /avg_mag, statistics.stdev(phase), max(phase) - min(phase)])
+            sweepStatTable.append([freq, statistics.stdev(mag), statistics.stdev(phase)])
         if (len(masterTable) == 0) or (masterTable[0][0] > freq):
             break
     return ret, sweepStatTable
@@ -165,11 +173,16 @@ class experimentDataSet:
     def loadComparisonDataset(self, dataset_name):
         self.comparisonData = []
         self.comparisonDataSweepStats = []
-        raw_data = parseRawCSV('c:/potentiostat/squidstatcalibrator/bin/debug/ACdataStandards/' + dataset_name + '/')
+        dummy = []
+        raw_data = parseRawCSV('c:/potentiostat/squidstatcalibrator/bin/debug/ACdataStandards/' + dataset_name + ' impedance/')
         while len(raw_data) > 0:
-            sweep, sweep_stats = popSweep(raw_data, returnStats = True)
+            sweep, dummy = popSweep(raw_data, returnStats = False)
             self.comparisonData.append(sweep)
-            self.comparisonDataSweepStats.append(sweep_stats)
+        raw_data = parseRawCSV('c:/potentiostat/squidstatcalibrator/bin/debug/ACdataStandards/' + dataset_name + ' stdev/')
+        while len(raw_data) > 0:
+            sweep, dummy = popSweep(raw_data, returnStats = False)
+            self.comparisonDataSweepStats.append(sweep)
+
 
     def addSweep(self, FrequencyList = [], StartingFreq = 1e6, EndingFrequency = 1e4, PointsPerDecade = 10):
         if len(FrequencyList) == 0:
