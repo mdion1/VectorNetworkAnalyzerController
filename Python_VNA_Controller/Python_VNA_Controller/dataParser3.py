@@ -369,20 +369,15 @@ def main():
         PolMult(range3, range2)
 
         #range4
-        #calculate R3_V10_I1(alt)
-        #R3_V10_I1_1k_calc = deepcopy(R3_V10_I10_1k)
-        #PolDivide(R3_V10_I1_1k_calc, V10_I10)
-        #PolMult(R3_V10_I1_1k_calc, V10_I1)
-
         range4 = deepcopy(R4_V10_I1_1k)
-        PolDivide(range4, R3_V10_I1_1k)    #PolDivide(range4, R3_V10_I1_1k_calc)
+        PolDivide(range4, R3_V10_I1_1k)
         normalize(range4)
         range4 = PolInv(range4)
         PolMult(range4, range3)
 
         #range5
         range5 = deepcopy(R5_V10_I1_1k)
-        PolDivide(range5, R3_V10_I1_1k)    #PolDivide(range5, R3_V10_I1_1k_calc)
+        PolDivide(range5, R3_V10_I1_1k)
         normalize(range5)
         range5 = PolInv(range5)
         PolMult(range5, range3)
@@ -437,7 +432,6 @@ def main():
         writeCSV(basefolder + 'WEgain2_Igain1.csv', V2_I1)
         writeCSV(basefolder + 'WEgain5_Igain1.csv', V5_I1)
         writeCSV(basefolder + 'WEgain10_Igain1.csv', V10_I1)
-        #writeCSV(basefolder + 'WEgain10_Igain10.csv', V10_I10)
         writeCSV(basefolder + 'WEgain20_Igain1.csv', V20_I1)
         writeCSV(basefolder + 'WEgain50_Igain1.csv', V50_I1)
         writeCSV(basefolder + 'WEgain50_Igain2.csv', V50_I2)
@@ -522,9 +516,9 @@ def main():
 
         # 100 Ohm Sweeps
         results += [['100 Ohm sweeps']]
-        DataList = [R2_V1_I1_100R, R2_V2_I1_100R, R2_V5_I1_100R, R2_V10_I1_100R, R2_V10_I10_100R, R2_V1_I2_100R, R2_V1_I5_100R, R2_V1_I10_100R, R3_V10_I1_100R]
-        RangeList = [range2, range2, range2, range2, range2, range2, range2, range2, range3]
-        GainList1 = [V1_I1, V2_I1, V5_I1, V10_I1, V10_I10, V1_I2, V1_I5, V1_I10, V10_I1]
+        DataList = [R2_V1_I1_100R, R2_V2_I1_100R, R2_V5_I1_100R, R2_V10_I1_100R, R2_V1_I2_100R, R2_V1_I5_100R, R2_V1_I10_100R, R3_V10_I1_100R]
+        RangeList = [range2, range2, range2, range2, range2, range2, range2, range3]
+        GainList1 = [V1_I1, V2_I1, V5_I1, V10_I1, V1_I2, V1_I5, V1_I10, V10_I1]
         for i in range(0, len(DataList)):
             data = deepcopy(DataList[i])
             PolMult(data, RangeList[i])
@@ -533,9 +527,9 @@ def main():
 
         # 1kOhm Sweeps
         results += [['1kOhm sweeps']]
-        DataList = [R2_V1_I10_1k, R2_V1_I20_1k, R2_V1_I50_1k, R2_V1_I100_1k, R3_V10_I10_1k, R4_V10_I1_1k, R5_V10_I1_1k]
+        DataList = [R2_V1_I10_1k, R2_V1_I20_1k, R2_V1_I50_1k, R2_V1_I100_1k, R3_V10_I1_1k, R4_V10_I1_1k, R5_V10_I1_1k]
         RangeList = [range2, range2, range2, range2, range3, range4, range5]
-        GainList1 = [V1_I10, V1_I20, V1_I50, V1_I100, V10_I10, V10_I1, V10_I1]
+        GainList1 = [V1_I10, V1_I20, V1_I50, V1_I100, V10_I1, V10_I1, V10_I1]
         for i in range(0, len(DataList)):
             data = deepcopy(DataList[i])
             PolMult(data, RangeList[i])
