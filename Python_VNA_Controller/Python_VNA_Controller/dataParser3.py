@@ -115,89 +115,48 @@ def main():
 
     DataComplete = True
     ErrorStrList = []
-    allSweepStats = []
-    FrequencyList_1M_to_1k = [995000, 794999.9375, 634999.9375, 504999.9688, 398107.1562, 316227.6875, 251188.5938, 199526.1719, 158489.3125, 125892.4609, 99999.92188, 79419.92969, 63095.70703, 50118.66016, 39810.6875, 31622.68555, 25118.79492, 19952.5625, 15848.875, 12589.24609, 9999.983398, 6309.524414, 3981.054688, 2511.881836, 1584.889893, 999.9959717]
-    FrequencyList_10k_to_100 = [9999.983398, 6309.570801, 3981.054688, 2511.881836, 1584.889893, 999.9959717, 630.9564819, 398.1054688, 251.1878815, 158.4892731, 99.99930573]
-    FrequencyList_10k_to_1 = [9999.983398, 6309.570801, 3981.054688, 2511.881836, 1584.889893, 999.9959717, 630.9564819, 398.1054688, 251.1878815, 158.4892731, 99.99930573, 63.09564972, 39.81058502, 25.11878777, 15.84885502, 9.999984741, 6.309528351, 3.981062889, 2.511876583, 1.584885478, 0.9999951124]
-    FrequencyList_100_to_1 = [99.99930573, 63.09564972, 39.81058502, 25.11878777, 15.84885502, 9.999984741, 6.309528351, 3.981062889, 2.511876583, 1.584885478, 0.9999951124]
-    FrequencyList_100_to_100m = [99.99930573, 79.432724, 63.09564972, 50.1186142, 39.81058502, 31.62276649, 25.11878777, 19.95258522, 15.84885502, 12.58922577, 9.999984741, 7.943253994, 6.309528351, 5.011861324, 3.981062889, 3.162267685, 2.511876583, 1.995260835, 1.584885478, 1.258922577, 0.9999951124, 0.4999975562, 0.09999894351]
-
+    
     # import raw data from "1 Ohm Run" experiment
-    print('1 Ohm')
-    rawData1R = parseRawCSV(basefolder + '1 ohm run/')
+    rawData1R = parseRawCSV(basefolder + '1 Ohm run/')
     InvertPhase(rawData1R)
     dataParseCheck = experimentDataSet(rawData1R, DatasetName = '1 Ohm Run')
-    for i in range(0, 3):
-        dataParseCheck.addSweep(FrequencyList = FrequencyList_1M_to_1k)
-    DataComplete &= dataParseCheck.checkForCompleteness(ErrorStrList)
-    allSweepStats += [['1 Ohm Run']]
-    allSweepStats += dataParseCheck.getStats()
+    DataComplete &= dataParseCheck.verifyData(ErrorStrList)
 
     # import raw data from "10 Ohm Run" experiment
-    print('10 Ohm')
-    rawData10R = parseRawCSV(basefolder + '10 Ohm run/')
+    rawData1R = parseRawCSV(basefolder + '10 Ohm run/')
     InvertPhase(rawData10R)
     dataParseCheck = experimentDataSet(rawData10R, DatasetName = '10 Ohm Run')
-    for i in range(0, 24):
-        dataParseCheck.addSweep(FrequencyList = FrequencyList_1M_to_1k)
-    DataComplete &= dataParseCheck.checkForCompleteness(ErrorStrList)
-    allSweepStats += [['10 Ohm Run']]
-    allSweepStats += dataParseCheck.getStats()
+    DataComplete &= dataParseCheck.verifyData(ErrorStrList)
 
     # import raw data from "100 Ohm Run" experiment
-    print('100 Ohm')
     rawData100R = parseRawCSV(basefolder + '100 Ohm run/')
     InvertPhase(rawData100R)
     dataParseCheck = experimentDataSet(rawData100R, DatasetName = '100 Ohm Run')
-    for i in range(0, 8):   #for i in range(0, 9):
-        dataParseCheck.addSweep(FrequencyList = FrequencyList_1M_to_1k)
-    DataComplete &= dataParseCheck.checkForCompleteness(ErrorStrList)
-    allSweepStats += [['100 Ohm Run']]
-    allSweepStats += dataParseCheck.getStats()
+    DataComplete &= dataParseCheck.verifyData(ErrorStrList)
 
     # import raw data from "1kOhm Run" experiment
-    print('1kOhm')
     rawData1k = parseRawCSV(basefolder + '1kOhm run/')
     InvertPhase(rawData1k)
     dataParseCheck = experimentDataSet(rawData1k, DatasetName = '1kOhm Run')
-    for i in range(0, 7):
-        dataParseCheck.addSweep(FrequencyList = FrequencyList_1M_to_1k)
-    DataComplete &= dataParseCheck.checkForCompleteness(ErrorStrList)
-    allSweepStats += [['1kOhm Run']]
-    allSweepStats += dataParseCheck.getStats()
+    DataComplete &= dataParseCheck.verifyData(ErrorStrList)
 
     # import raw data from "10kOhm Run" experiment
-    print('10kOhm')
     rawData10k = parseRawCSV(basefolder + '10kOhm run/')
     InvertPhase(rawData10k)
     dataParseCheck = experimentDataSet(rawData10k, DatasetName = '10kOhm Run')
-    for i in range(0, 4):
-        dataParseCheck.addSweep(FrequencyList = FrequencyList_1M_to_1k)
-    DataComplete &= dataParseCheck.checkForCompleteness(ErrorStrList)
-    allSweepStats += [['10kOhm Run']]
-    allSweepStats += dataParseCheck.getStats()
+    DataComplete &= dataParseCheck.verifyData(ErrorStrList)
 
     # import raw data from "100kOhm Run" experiment
-    print('100kOhm')
     rawData100k = parseRawCSV(basefolder + '100kOhm run/')
     InvertPhase(rawData100k)
     dataParseCheck = experimentDataSet(rawData100k, DatasetName = '100kOhm Run')
-    dataParseCheck.addSweep(FrequencyList = FrequencyList_10k_to_100)
-    dataParseCheck.addSweep(FrequencyList = FrequencyList_10k_to_1)
-    DataComplete &= dataParseCheck.checkForCompleteness(ErrorStrList)
-    allSweepStats += [['100kOhm Run']]
-    allSweepStats += dataParseCheck.getStats()
+    DataComplete &= dataParseCheck.verifyData(ErrorStrList)
 
     # import raw data from "10MOhm Run" experiment
-    print('10MOhm')
     rawData10M = parseRawCSV(basefolder + '10MOhm run/')
     InvertPhase(rawData10M)
     dataParseCheck = experimentDataSet(rawData10M, DatasetName = '10MOhm Run')
-    dataParseCheck.addSweep(FrequencyList = FrequencyList_100_to_1)
-    dataParseCheck.addSweep(FrequencyList = FrequencyList_100_to_100m)
-    DataComplete &= dataParseCheck.checkForCompleteness(ErrorStrList)
-    allSweepStats += [['10MOhm Run']]
-    allSweepStats += dataParseCheck.getStats()
+    DataComplete &= dataParseCheck.verifyData(ErrorStrList)
 
     #*****************************************************************************************
     writeCSV(basefolder + 'sweep stats.csv', allSweepStats, header = ['Frequency', 'Norm(StDev(Mag))', 'Norm(Range(Mag))', 'StDev(phase)', 'Range(phase)'])

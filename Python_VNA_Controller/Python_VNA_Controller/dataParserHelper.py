@@ -159,16 +159,18 @@ def popSweep(masterTable, returnStats = False):
 #****************** "experimentDataSet" class **********************
 class experimentDataSet:
     def __init__(self, rawdata, DatasetName = 'Dataset'):
+        self.sweepObjs = []
         self.sweepParameters = []
         self.rawData = []
-        self.sweepStats = []
         self.dataName = DatasetName
         self.loadComparisonDataset(DatasetName)
         temp = deepcopy(rawdata)
+        i = 0
         while len(temp) > 0:
-            sweep, sweep_stats = popSweep(temp, returnStats = True)
-            self.rawData.append(sweep)
-            self.sweepStats.append(sweep_stats)
+            sweepData, dummyVar = popSweep(temp)
+            self.rawData.append(sweepData)
+            self.sweepObjs.append(sweep(sweepData, self.comparisonData[i], self.comparisonDataSweepStats[i]))   #not the cleanest way to add comparisonData and comparisonDataSweepStats...
+            i += 1
 
     def loadComparisonDataset(self, dataset_name):
         self.comparisonData = []
@@ -183,60 +185,90 @@ class experimentDataSet:
             sweep, dummy = popSweep(raw_data, returnStats = False)
             self.comparisonDataSweepStats.append(sweep)
 
-
-    def addSweep(self, FrequencyList = [], StartingFreq = 1e6, EndingFrequency = 1e4, PointsPerDecade = 10):
-        if len(FrequencyList) == 0:
-            FrequencyList = getFrequencyList(StartingFreq, EndingFrequency, PointsPerDecade)
-        sweep = sweepParams()
-        for i in range(0, len(FrequencyList)):
-            sweep.appendFrequency(FrequencyList[i])
-        self.sweepParameters.append(sweep)
-
-    def checkForCompleteness(self, outStringList = []):
-        sweepsMissing = len(self.sweepParameters) - len(self.rawData)
-        if sweepsMissing > 0:
-            outStringList.append(str(sweepsMissing) + ' sweeps missing from ' + self.dataName + '\n')
-            return False
-        elif sweepsMissing < 0:
-            outStringList.append('Wrong dataset selected for ' + self.dataName + '\n')
-            return False
-
-        datasetComplete = True
+    def verifyData(self, outStringList = []):
+        dataVerified = True
         tempStringList = []
-        for i in range(0, len(self.sweepParameters)):
-            frequenciesPresent = []
-            for j in range(0, len(self.rawData[i])):
-                frequenciesPresent.append(self.rawData[i][j][0])
-            missingFreqList = []
-            if not self.sweepParameters[i].checkForCompleteness(frequenciesPresent, missingFreqList):
-                datasetComplete = False
-                tempStringList.append('\tSweep ' + str(i + 1) + ' incomplete:\n')
-                tempStringList += missingFreqList
+        for i in range(0, len(self.sweepObjs)):
+            sweep = self.sweepObjs[i]
+            sweepVerified = sweep.checkForCompleteness()
+            if not sweepVerified:
+                tempStringList.append('\tSweep ' + str(i + 1) + ' is missing data points.')
+            
+            sweepVerified = sweep.cleanData()
+            if not sweepVerified:
+                tempStringList.append('\tSweep ' + str(i + 1) + ' has noisy or inaccurate data.')
+            
+            dataVerified &= sweepVerified
 
-            # check that data falls within 5% of the "normal" data, and that noise is within expected bounds
-            badIndices = CompareDatasets(self.rawData[i], self.comparisonData[i], 0.1, 5)
-            badIndices += CompareDatasets(self.sweepStats[i], self.comparisonDataSweepStats[i], 1, 1, isStandardDeviationData = True)
-            if len(badIndices) > 0:
-                datasetComplete = False
-                tempStringList.append('\tSweep ' + str(i + 1) + ' has bad data at the following frequencies: ')
-                for badIndex in badIndices:
-                    tempStringList.append('\t\t' + str(badIndex))
-
-        if datasetComplete:
+        if dataVerified:
             outStringList.append(self.dataName + ' complete\n')
         else:
             outStringList.append(self.dataName + ' errors:\n')
             outStringList += tempStringList
-        return datasetComplete
+        return dataVerified
     def getStats(self):
         return self.sweepStats
 
-class sweepParams:
-    def __init__(self):
-        self.frequencyList = []
-    def appendFrequency(self, freq):
-        self.frequencyList.append(freq)
-    def checkForCompleteness(self, frequenciesPresent, outStringList = []):
+class sweep:
+    def __init__(self, experimentalData, comparisonData, stdevData):
+        self.loadRawData(experimentalData)
+        self.loadComparisonData(comparisonData)
+        self.loadStDevData(stdevData)
+    def loadRawData(self, rawData):
+        self.allData = {}
+        ZModData = []
+        phaseData = []
+        freqList = []
+        while True:
+            mag = []
+            phase = []
+            freq = 0
+            while True:
+                row = rawData.pop(0)
+                freq = row[0]
+                mag.append(row[1])
+                phase.append(row[2])
+                if (len(masterTable) == 0) or (masterTable[0][0] != freq):
+                    break
+            ZModData.append(mag)
+            phaseData.append(phase)
+            freqList.append(freq)
+            if (len(masterTable) == 0) or (masterTable[0][0] > freq):
+                break
+        self.allData["Zmod"] = ZModData
+        self.allData["Phase"] = phaseData
+        self.allData["Frequency list"] = freqList
+
+    def loadComparisonData(self, rawData):
+        ZModData = []
+        phaseData = []
+        freqData = []
+        while True:
+            row = rawData.pop(0)
+            freqData.append(row[0])
+            ZModData.append(row[1])
+            phaseData.append(row[2])
+            if (len(masterTable) == 0) or (masterTable[0][0] > freqData[-1]):
+                break
+        self.allData["Freq comparison data"] = freqData
+        self.allData["Zmod comparison data"] = ZModData
+        self.allData["Phase comparison data"] = phaseData
+
+    def loadStDevData(self, rawData):
+        ZModStDevData = []
+        phaseStDevData = []
+        while True:
+            row = rawData.pop(0)
+            ZModData.append(row[1])
+            phaseData.append(row[2])
+            if (len(masterTable) == 0) or (masterTable[0][0] > freq):
+                break
+        self.allData["Zmod stdev comparison data"] = ZModData
+        self.allData["Phase stdev comparison data"] = phaseData
+
+    def checkForCompleteness(self):
+        frequencyList = self.allData["Freq comparison data"]
+        frequenciesPresent = self.allData["Frequency list"]
         sweepComplete = True
         for frequency in self.frequencyList:
             frequencyPresentInList = False
@@ -246,5 +278,40 @@ class sweepParams:
                     break
             if not frequencyPresentInList:
                 sweepComplete = False
-                outStringList.append('\t\tMissing frequency: ' + str(frequency) + 'Hz\n')
         return sweepComplete
+    
+    def cleanData(self):
+        success = True
+        zmod_margin = 0.1
+        phase_margin = 5
+        zmod_stdev_margin = 2
+        phase_stdev_margin = 3
+        for i in range(0, len(self.allData["Frequency list"])):
+            sampleSize = len(self.allData["Zmod"][i])
+            Zmod_baseline = self.allData["Zmod comparison data"][i]
+            Phase_baseline = self.allData["Phase comparison data"][i]
+            stdevZmod_max = self.allData["Zmod stdev comparison data"][i] * margin
+            stdevPhase_max = self.allData["Phase stdev comparison data"][i] * margin
+            while True:
+                dataOk = True
+                _Zmod = statistics.mean(self.allData["Zmod"][i])
+                _phase = statistics.mean(self.allData["Phase"][i])
+                stdevZmod = statistics.stdev(self.allData["Zmod"][i])
+                stdevPhase = statistics.stdev(self.allData["Phase"][i])
+                
+                if (stdevZmod > stdevZmod_max * zmod_stdev_margin) or not areApproximatelyEqual(_Zmod, Zmod_baseline, zmod_margin):
+                    dataOk = False
+                    badIndex = findFurthestPoint(self.allData["Zmod"][i])
+                    self.allData["Zmod"][i].pop(badIndex)
+                    self.allData["Phase"][i].pop(badIndex)
+                if (stdevPhase > stdevPhase_max * phase_stdev_margin) or not areApproximatelyEqual(_phase, Phase_baseline, phase_margin, Abs_error = True):
+                    dataOk = False
+                    badIndex = findFurthestPoint(self.allData["Phase"][i])
+                    self.allData["Zmod"][i].pop(badIndex)
+                    self.allData["Phase"][i].pop(badIndex)
+                if dataOk:
+                    break
+                elif self.allData["Zmod"][i] <= sampleSize * 0.6:
+                    sucess = False
+                    break
+        return success
