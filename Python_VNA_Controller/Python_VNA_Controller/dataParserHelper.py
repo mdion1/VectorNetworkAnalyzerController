@@ -1,10 +1,13 @@
-from copy import deepcopy
 import glob
+print('glob imported')
 import math
 import csv
 import statistics
-from numpy import percentile
-import matplotlib.pyplot as plt
+print('statistics imported')
+#from numpy import percentile
+import numpy as np
+print('numpy imported')
+#import matplotlib.pyplot as plt
 
 #****************** Helper functions **********************
 def parseRawCSV(directoryName):
@@ -89,10 +92,20 @@ def CompareDatasets(data, baseline, mag_err_margin, phase_err_margin, isStandard
 
     return ret_indices
 
+def findFurthestPoint(list):
+    avg = statistics.mean(list)
+    index = 0
+    max_err = 0
+    for i in range(0, len(list)):
+        if abs(list[i] - avg) > max_err:
+            index = i
+            max_err = abs(list[i] - avg)
+    return index
+
 def findOutliers(maglist, phaselist, margin = 1.5):
     #outliers are based on maglist data, since clipping doesn't affect the phase as much
-    q25 = percentile(maglist, 25)
-    q75 = percentile(maglist, 75)
+    q25 = np.percentile(maglist, 25)
+    q75 = np.percentile(maglist, 75)
     iqr = q75 - q25
     cut_off = iqr * margin
     lower, upper = q25 - cut_off, q75 + cut_off
@@ -133,9 +146,15 @@ def interpolate(x, lookupTable, ycol = 1, semilog = True):
         yi = yL + (xi - xL) / (xR - xL) * (yR - yL)
         return yi
 
-def popSweep(masterTable, returnStats = False):
+def popSweepAvg(masterTable):
     ret = []
-    sweepStatTable = []
+    sweepRaw = masterTable.pop(0)
+    for i in range(0, len(sweepRaw)):
+        ret.append([sweepRaw[i][0], statistics.mean(sweepRaw[i][1]), statistics.mean(sweepRaw[i][2])])
+    return ret
+
+def popSweepFull(masterTable):
+    ret = []
     while True:
         mag = []
         phase = []
@@ -148,13 +167,13 @@ def popSweep(masterTable, returnStats = False):
             if (len(masterTable) == 0) or (masterTable[0][0] != freq):
                 break
         findOutliers(mag, phase, margin = 5)
-        avg_mag = statistics.mean(mag)
-        ret.append([freq, avg_mag, statistics.mean(phase)])
-        if returnStats:
-            sweepStatTable.append([freq, statistics.stdev(mag), statistics.stdev(phase)])
+        if len(mag) > 1:
+            ret.append([freq, mag, phase])
+        else:
+            ret.append([freq, mag[0], phase[0]])
         if (len(masterTable) == 0) or (masterTable[0][0] > freq):
             break
-    return ret, sweepStatTable
+    return ret
 
 #****************** "experimentDataSet" class **********************
 class experimentDataSet:
@@ -164,13 +183,15 @@ class experimentDataSet:
         self.rawData = []
         self.dataName = DatasetName
         self.loadComparisonDataset(DatasetName)
-        temp = deepcopy(rawdata)
         i = 0
-        while len(temp) > 0:
-            sweepData, dummyVar = popSweep(temp)
+        while len(rawdata) > 0:
+            sweepData = popSweepFull(rawdata)
             self.rawData.append(sweepData)
             self.sweepObjs.append(sweep(sweepData, self.comparisonData[i], self.comparisonDataSweepStats[i]))   #not the cleanest way to add comparisonData and comparisonDataSweepStats...
             i += 1
+
+    def getRawSweepData(self):
+        return self.rawData
 
     def loadComparisonDataset(self, dataset_name):
         self.comparisonData = []
@@ -178,11 +199,11 @@ class experimentDataSet:
         dummy = []
         raw_data = parseRawCSV('c:/potentiostat/squidstatcalibrator/bin/debug/ACdataStandards/' + dataset_name + ' impedance/')
         while len(raw_data) > 0:
-            sweep, dummy = popSweep(raw_data, returnStats = False)
+            sweep = popSweepFull(raw_data)
             self.comparisonData.append(sweep)
         raw_data = parseRawCSV('c:/potentiostat/squidstatcalibrator/bin/debug/ACdataStandards/' + dataset_name + ' stdev/')
         while len(raw_data) > 0:
-            sweep, dummy = popSweep(raw_data, returnStats = False)
+            sweep = popSweepFull(raw_data)
             self.comparisonDataSweepStats.append(sweep)
 
     def verifyData(self, outStringList = []):
@@ -219,22 +240,10 @@ class sweep:
         ZModData = []
         phaseData = []
         freqList = []
-        while True:
-            mag = []
-            phase = []
-            freq = 0
-            while True:
-                row = rawData.pop(0)
-                freq = row[0]
-                mag.append(row[1])
-                phase.append(row[2])
-                if (len(masterTable) == 0) or (masterTable[0][0] != freq):
-                    break
-            ZModData.append(mag)
-            phaseData.append(phase)
-            freqList.append(freq)
-            if (len(masterTable) == 0) or (masterTable[0][0] > freq):
-                break
+        for i in range(0, len(rawData)):
+            freqList.append(rawData[i][0])
+            ZModData.append(rawData[i][1])
+            phaseData.append(rawData[i][2])
         self.allData["Zmod"] = ZModData
         self.allData["Phase"] = phaseData
         self.allData["Frequency list"] = freqList
@@ -243,13 +252,11 @@ class sweep:
         ZModData = []
         phaseData = []
         freqData = []
-        while True:
+        while len(rawData) > 0:
             row = rawData.pop(0)
             freqData.append(row[0])
             ZModData.append(row[1])
             phaseData.append(row[2])
-            if (len(masterTable) == 0) or (masterTable[0][0] > freqData[-1]):
-                break
         self.allData["Freq comparison data"] = freqData
         self.allData["Zmod comparison data"] = ZModData
         self.allData["Phase comparison data"] = phaseData
@@ -257,20 +264,18 @@ class sweep:
     def loadStDevData(self, rawData):
         ZModStDevData = []
         phaseStDevData = []
-        while True:
+        while len(rawData) > 0:
             row = rawData.pop(0)
-            ZModData.append(row[1])
-            phaseData.append(row[2])
-            if (len(masterTable) == 0) or (masterTable[0][0] > freq):
-                break
-        self.allData["Zmod stdev comparison data"] = ZModData
-        self.allData["Phase stdev comparison data"] = phaseData
+            ZModStDevData.append(row[1])
+            phaseStDevData.append(row[2])
+        self.allData["Zmod stdev comparison data"] = ZModStDevData
+        self.allData["Phase stdev comparison data"] = phaseStDevData
 
     def checkForCompleteness(self):
         frequencyList = self.allData["Freq comparison data"]
         frequenciesPresent = self.allData["Frequency list"]
         sweepComplete = True
-        for frequency in self.frequencyList:
+        for frequency in frequencyList:
             frequencyPresentInList = False
             for i in range(0, len(frequenciesPresent)):
                 if areApproximatelyEqual(frequency, frequenciesPresent[i]):
@@ -290,8 +295,8 @@ class sweep:
             sampleSize = len(self.allData["Zmod"][i])
             Zmod_baseline = self.allData["Zmod comparison data"][i]
             Phase_baseline = self.allData["Phase comparison data"][i]
-            stdevZmod_max = self.allData["Zmod stdev comparison data"][i] * margin
-            stdevPhase_max = self.allData["Phase stdev comparison data"][i] * margin
+            stdevZmod_max = self.allData["Zmod stdev comparison data"][i] * zmod_stdev_margin
+            stdevPhase_max = self.allData["Phase stdev comparison data"][i] * phase_stdev_margin
             while True:
                 dataOk = True
                 _Zmod = statistics.mean(self.allData["Zmod"][i])
@@ -311,7 +316,9 @@ class sweep:
                     self.allData["Phase"][i].pop(badIndex)
                 if dataOk:
                     break
-                elif self.allData["Zmod"][i] <= sampleSize * 0.6:
-                    sucess = False
+                elif len(self.allData["Zmod"][i]) <= sampleSize * 0.6:
+                    success = False
                     break
+            if not success:
+                break
         return success
