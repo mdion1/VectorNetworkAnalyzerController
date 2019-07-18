@@ -7,7 +7,7 @@ print('statistics imported')
 #from numpy import percentile
 import numpy as np
 print('numpy imported')
-#import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt
 
 #****************** Helper functions **********************
 def parseRawCSV(directoryName):
@@ -209,6 +209,11 @@ class experimentDataSet:
     def verifyData(self, outStringList = []):
         dataVerified = True
         tempStringList = []
+
+        if len(self.sweepObjs) < len(self.comparisonData):
+            tempStringList.append('\tSweeps missing: expected ' + str(len(self.comparisonData)) + ' sweeps but read ' + str(len(self.sweepObjs)) + '.')
+            dataVerified = False
+
         for i in range(0, len(self.sweepObjs)):
             sweep = self.sweepObjs[i]
             sweepVerified = sweep.checkForCompleteness()
@@ -319,6 +324,56 @@ class sweep:
                 elif len(self.allData["Zmod"][i]) <= sampleSize * 0.6:
                     success = False
                     break
-            if not success:
-                break
+            #if not success:
+                #break
+        if not success:
+            success = self.decideFromPlot()
         return success
+
+    def decideFromPlot(self):
+        freqList = []
+        magList = []
+        magStDevList = []
+        phaseList = []
+        phaseStDevList = []
+        for i in range(0, len(self.allData["Zmod"])):
+            for j in range(0, len(self.allData["Zmod"][i])):
+                freqList.append(self.allData["Frequency list"][i])
+                magList.append(self.allData["Zmod"][i][j])
+                phaseList.append(self.allData["Phase"][i][j])
+            magStDevList.append(statistics.stdev(self.allData["Zmod"][i]))
+            phaseStDevList.append(statistics.stdev(self.allData["Phase"][i]))
+        freqList_base = self.allData["Freq comparison data"]
+        magList_base = self.allData["Zmod comparison data"]
+        phaseList_base = self.allData["Phase comparison data"]
+        magStDevList_base = self.allData["Zmod stdev comparison data"]
+        phaseStDevList_base = self.allData["Phase stdev comparison data"]
+
+        # Zmod subplot
+        plt.subplot(2,2,1)
+        plt.title('Zmod')
+        plt.plot(freqList, magList, 'r')
+        plt.plot(freqList_base, magList_base, 'b')
+        plt.xscale('log')
+        # Phase subplot
+        plt.subplot(2,2,2)
+        plt.title('Phase')
+        plt.plot(freqList, phaseList, 'r')
+        plt.plot(freqList_base, phaseList_base, 'b')
+        plt.xscale('log')
+        # Zmod stdev subplot
+        plt.subplot(2,2,3)
+        plt.title('Zmod stdev')
+        plt.plot(freqList_base, magStDevList, 'r')
+        plt.plot(freqList_base, magStDevList_base, 'b')
+        plt.xscale('log')
+        # Phase stdev subplot
+        plt.subplot(2,2,4)
+        plt.title('Phase stdev')
+        plt.plot(freqList_base, phaseStDevList, 'r')
+        plt.plot(freqList_base, phaseStDevList_base, 'b')
+        plt.xscale('log')
+        plt.show()
+
+        response = input()
+        return response[0] == 'Y' or response[0] == 'y'
