@@ -153,6 +153,31 @@ def popSweepAvg(masterTable):
         ret.append([sweepRaw[i][0], statistics.mean(sweepRaw[i][1]), statistics.mean(sweepRaw[i][2])])
     return ret
 
+def popSweepAvgWithStats(masterTable):
+    ret = []
+    retStats = []
+    while True:
+        mag = []
+        phase = []
+        freq = 0
+        while True:
+            row = masterTable.pop(0)
+            freq = row[0]
+            mag.append(row[1])
+            phase.append(row[2])
+            if (len(masterTable) == 0) or (masterTable[0][0] != freq):
+                break
+        findOutliers(mag, phase, margin = 5)
+        if len(mag) > 1:
+            ret.append([freq, statistics.mean(mag), statistics.mean(phase)])
+            retStats.append([freq, statistics.stdev(mag), statistics.stdev(phase)])
+        else:
+            ret.append([freq, mag[0], phase[0]])
+            retStats.append([freq, mag[0], phase[0]])
+        if (len(masterTable) == 0) or (masterTable[0][0] > freq):
+            break
+    return ret, retStats
+
 def popSweepFull(masterTable):
     ret = []
     while True:

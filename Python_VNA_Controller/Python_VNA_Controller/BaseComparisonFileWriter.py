@@ -6,7 +6,8 @@ import os
 from copy import deepcopy
 from scipy.signal import savgol_filter
 from dataParserHelper import experimentDataSet
-from dataParserHelper import popSweep
+from dataParserHelper import popSweepAvg
+from dataParserHelper import popSweepAvgWithStats
 from dataParserHelper import interpolate
 from dataParserHelper import parseRawCSV
 from dataParserHelper import InvertPhase
@@ -50,7 +51,7 @@ def parse_process_write(basefolder, experimentName):
     StdevDataToWrite = []
 
     while len(rawData) > 0:
-        sweep, sweep_stats = popSweep(rawData, returnStats = True)
+        sweep, sweep_stats = popSweepAvgWithStats(rawData)
         stdevSmoothing(sweep_stats)
         ImpedanceDataToWrite += sweep
         StdevDataToWrite += sweep_stats
@@ -73,6 +74,8 @@ def main():
     parse_process_write(basefolder, '10kOhm run')
     parse_process_write(basefolder, '100kOhm run')
     parse_process_write(basefolder, '10MOhm run')
+    print("Script complete, press enter to continue...")
+    input()
 
 
 if __name__ == '__main__':

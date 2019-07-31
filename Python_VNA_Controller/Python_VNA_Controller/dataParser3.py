@@ -251,10 +251,12 @@ def main():
             # 100kOhm run
             R5_V10_I1_100k = popSweepAvg(rawData100k)
             R6_V10_I1_100k = popSweepAvg(rawData100k)
+            R7_V100_I1_100k = popSweepAvg(rawData100k)
 
             # 10MOhm run
             R6_V10_I100_10M = popSweepAvg(rawData10M)
             R8_V10_I1_10M = popSweepAvg(rawData10M)
+            R9_V100_I1_10M = popSweepAvg(rawData10M)
 
             #****************************************** calculations ***********************************************
             range2 = deepcopy(R2_V1_I1_100R)
@@ -361,7 +363,7 @@ def main():
             range5 = PolInv(range5)
             PolMult(range5, range3)
 
-            #range6/7
+            #range6
             range6 = deepcopy(R6_V10_I1_100k)
             normalize(R5_V10_I1_100k)
             PolSmooth(R5_V10_I1_100k)
@@ -370,7 +372,14 @@ def main():
             range6 = PolInv(range6)
             PolMult(range6, range5)
 
-            #range8/9
+            #range7
+            range7 = deepcopy(R7_V10_I10_10M)
+            PolDivide(range7, R5_V10_I1_100k)
+            normalize(range7)
+            range7 = PolInv(range7)
+            PolMult(range7, range5)
+
+            #range8
             range8 = deepcopy(R8_V10_I1_10M)
             normalize(R6_V10_I100_10M)
             PolSmooth(R6_V10_I100_10M)
@@ -378,6 +387,13 @@ def main():
             normalize(range8)
             range8 = PolInv(range8)
             PolMult(range8, range6)
+
+            #range9
+            range9 = deepcopy(R9_V100_I1_10M)
+            PolDivide(range9, R6_V10_I100_10M)
+            normalize(range9)
+            range9 = PolInv(range9)
+            PolMult(range9, range6)
 
             #****************************************** debugging section ***********************************************
 
@@ -439,9 +455,9 @@ def main():
             writeCSV(basefolder + 'Range4.csv', range4)
             writeCSV(basefolder + 'Range5.csv', range5)
             writeCSV(basefolder + 'Range6.csv', range6)
-            writeCSV(basefolder + 'Range7.csv', range6)
+            writeCSV(basefolder + 'Range7.csv', range7)
             writeCSV(basefolder + 'Range8.csv', range8)
-            writeCSV(basefolder + 'Range9.csv', range8)
+            writeCSV(basefolder + 'Range9.csv', range9)
 
             # write "dummy" files
             dummyData = [[1000000, 1, 0], [1, 1, 0]]
