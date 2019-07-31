@@ -373,7 +373,7 @@ def main():
             PolMult(range6, range5)
 
             #range7
-            range7 = deepcopy(R7_V10_I10_10M)
+            range7 = deepcopy(R7_V100_I1_100k)
             PolDivide(range7, R5_V10_I1_100k)
             normalize(range7)
             range7 = PolInv(range7)
