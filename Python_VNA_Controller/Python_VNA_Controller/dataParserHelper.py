@@ -10,12 +10,35 @@ print('numpy imported')
 import matplotlib.pyplot as plt
 
 #****************** Helper functions **********************
+def condenseRawCSV(filename):
+    dataTable = []
+    with open(filename, mode = 'r') as csv_file:
+        csv_reader = csv.reader(csv_file, delimiter=',')
+        for row in csv_reader:
+            if len(row) == 3:
+                return;
+            row_float = []
+            for i in [7, 8, 9]:
+                try:
+                    row_float.append(float(row[i]))
+                except ValueError:
+                    continue
+            if len(row_float) > 0:
+                dataTable.append(row_float)
+    with open(filename, 'w') as csv_file:
+        csv_writer = csv.writer(csv_file, delimiter=',', lineterminator = '\n')
+        csv_writer.writerow(['Frequency', 'Magnitude', 'Phase(degrees)'])
+        for i in range(0, len(dataTable)):
+            csv_writer.writerow(dataTable[i])
+        csv_file.close()
+
 def parseRawCSV(directoryName):
     dataTable = []
     filenames = glob.glob(directoryName + "*.csv")
     if len(filenames) > 0:
         filename = filenames[0]
         try:
+            condenseRawCSV(filename)
             with open(filename) as csv_file:
                 csv_reader = csv.reader(csv_file, delimiter=',')
         
