@@ -15,7 +15,7 @@ def condenseRawCSV(filename):
     with open(filename, mode = 'r') as csv_file:
         csv_reader = csv.reader(csv_file, delimiter=',')
         for row in csv_reader:
-            if len(row) == 3:
+            if len(row) < 10:
                 return;
             row_float = []
             for i in [7, 8, 9]:
