@@ -12,8 +12,8 @@
     <Name>Python_VNA_Controller</Name>
     <RootNamespace>Python_VNA_Controller</RootNamespace>
     <LaunchProvider>Standard Python launcher</LaunchProvider>
-    <CommandLineArguments>"C:\Users\Matt Dion\Dropbox\Admiral Instruments Dropbox\Squidstat customer records\Plus1128"</CommandLineArguments>
-    <EnableNativeCodeDebugging>False</EnableNativeCodeDebugging>
+    <CommandLineArguments>"C:\Users\Matt Dion\Dropbox\Admiral Instruments Dropbox\Squidstat customer records\Plus1168\alt analog input mod"</CommandLineArguments>
+    <EnableNativeCodeDebugging>True</EnableNativeCodeDebugging>
     <IsWindowsApplication>False</IsWindowsApplication>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
@@ -25,9 +25,15 @@
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="BaseComparisonFileWriter.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="dataParser3.py" />
     <Compile Include="dataParserHelper.py" />
     <Compile Include="experimentRunner.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="PolMath.py">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="Squidstat_ctrl.py">

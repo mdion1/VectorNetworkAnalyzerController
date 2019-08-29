@@ -8,6 +8,7 @@ print('statistics imported')
 import numpy as np
 print('numpy imported')
 import matplotlib.pyplot as plt
+import PolMath
 
 #****************** Helper functions **********************
 def condenseRawCSV(filename):
@@ -136,38 +137,6 @@ def findOutliers(maglist, phaselist, margin = 1.5):
         if maglist[i] < lower or maglist[i] > upper:
             maglist.pop(i)
             phaselist.pop(i)
-
-def interpolate(x, lookupTable, ycol = 1, semilog = True):
-    #make sure table is sorted in descending order (by first column)
-    if(lookupTable[0][0] < lookupTable[-1][0]):
-        lookupTable.sort(key = sortByFirstElement)
-
-    #if x is outside the bounds of the table, return one of the bounding values
-    if x >= lookupTable[0][0]:
-        return lookupTable[0][ycol]
-    elif x <= lookupTable[-1][0]:
-        return lookupTable[-1][ycol]
-    #else interpolate
-    else:
-        indexR = 1
-        for i in range(1, len(lookupTable)):
-            if x > lookupTable[indexR][0]:
-                break
-            else:
-                indexR += 1
-        indexL = indexR - 1
-        xL = 0.0; xR = 0.0; xi = x
-        if (semilog):
-            xL = math.log10(lookupTable[indexL][0])
-            xR = math.log10(lookupTable[indexR][0])
-            xi = math.log10(x)
-        else:
-            xL = lookupTable[indexL][0]
-            xR = lookupTable[indexR][0]
-        yL = lookupTable[indexL][ycol]
-        yR = lookupTable[indexR][ycol]
-        yi = yL + (xi - xL) / (xR - xL) * (yR - yL)
-        return yi
 
 def popSweepAvg(masterTable):
     ret = []

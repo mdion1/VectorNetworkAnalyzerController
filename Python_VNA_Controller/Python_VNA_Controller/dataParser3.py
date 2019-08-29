@@ -9,10 +9,10 @@ import traceback
 from dataParserHelper import experimentDataSet
 print('experimentDataSet imported')
 from dataParserHelper import popSweepAvg
-from dataParserHelper import interpolate
 from dataParserHelper import parseRawCSV
 from dataParserHelper import InvertPhase
 from dataParserHelper import getColumn
+from PolMath import *
 print('helper functions imported')
 
 #****************** Helper functions **********************
@@ -60,55 +60,8 @@ def writeCSV(filename, data, header = ['Frequency', 'Magnitude', 'Phase(degrees)
         writeRow(csv_writer, data)
     csv_file.close()
 
-def PolDivide(numerator, denominator):
-    for i in range(0, len(numerator)):
-        freq = numerator[i][0]
-        numerator[i][1] /= interpolate(freq, denominator, 1)
-        numerator[i][2] -= interpolate(freq, denominator, 2)
-
-def PolInv(baseTable):
-    ret = deepcopy(baseTable)
-    for i in range(0, len(baseTable)):
-        ret[i][1] = 1 / baseTable[i][1]
-        ret[i][2] = -baseTable[i][2]
-    return ret
-
-def PolMult(baseTable, auxTable):
-    for i in range(0, len(baseTable)):
-        freq = baseTable[i][0]
-        baseTable[i][1] *= interpolate(freq, auxTable, 1)
-        baseTable[i][2] += interpolate(freq, auxTable, 2)
-
-def PolAdd(baseTable, auxTable):
-    for i in range(0, len(baseTable)):
-        freq = baseTable[i][0]
-        base_phi = baseTable[i][2] / 180 * math.pi
-        base = complex(baseTable[i][1] * math.cos(base_phi), baseTable[i][1] * math.sin(base_phi))
-        aux_phi = interpolate(freq, auxTable, 2) / 180 * math.pi
-        aux_mag = interpolate(freq, auxTable, 1)
-        aux = complex(aux_mag * math.cos(base_phi), aux_mag * math.sin(base_phi))
-        sum = base + aux
-        baseTable[i][1] = abs(sum)
-        baseTable[i][2] = cmath.phase(sum) * 180 / math.pi
-
-def PolSubtract(baseTable, auxTable):
-    for i in range(0, len(baseTable)):
-        freq = baseTable[i][0]
-        base_phi = baseTable[i][2] / 180 * math.pi
-        base = complex(baseTable[i][1] * math.cos(base_phi), baseTable[i][1] * math.sin(base_phi))
-        aux_phi = interpolate(freq, auxTable, 2) / 180 * math.pi
-        aux_mag = interpolate(freq, auxTable, 1)
-        aux = complex(aux_mag * math.cos(base_phi), aux_mag * math.sin(base_phi))
-        diff = base - aux
-        baseTable[i][1] = abs(diff)
-        baseTable[i][2] = cmath.phase(diff) * 180 / math.pi
-
 def sortByFirstElement(val):
     return val[0]
-
-def ScalarMult(baseTable, scalar):
-    for i in range(0, len(baseTable)):
-        baseTable[i][1] *= scalar
 
 #*************** Main script ****************************
 
@@ -260,6 +213,7 @@ def main():
 
             #****************************************** calculations ***********************************************
             range2 = deepcopy(R2_V1_I1_100R)
+            V1_I1 = getV1_I1_offset(range2)
             H_BaselineV = deepcopy(R2_V1_I1_100R)
 
             # I/V Gains 1, 2, 5, 10 (from 100 Ohm run)
@@ -448,6 +402,12 @@ def main():
             writeCSV(basefolder + 'WEgain200_Igain50.csv', V200_I50)
             writeCSV(basefolder + 'WEgain500_Igain1.csv', V500_I1)
             writeCSV(basefolder + 'WEgain1000_Igain1.csv', V1000_I1)
+            removeOffsetAt10kHz(range0)
+            removeOffsetAt10kHz(range1)
+            removeOffsetAt10kHz(range2)
+            removeOffsetAt10kHz(range3)
+            removeOffsetAt10kHz(range4)
+            removeOffsetAt10kHz(range5)
             writeCSV(basefolder + 'Range0.csv', range0)
             writeCSV(basefolder + 'Range1.csv', range1)
             writeCSV(basefolder + 'Range2.csv', range2)
@@ -461,7 +421,6 @@ def main():
 
             # write "dummy" files
             dummyData = [[1000000, 1, 0], [1, 1, 0]]
-            V1_I1 = deepcopy(dummyData)
             writeCSV(basefolder + 'V_inputBuffer.csv', dummyData)
             writeCSV(basefolder + 'WEgain1_Igain1.csv', V1_I1)
 
@@ -562,7 +521,7 @@ def main():
                 PolMult(data, RangeList[i])
                 results += data
 
-            writeCSV(basefolder + '/testresults.csv', results)
+            #writeCSV(basefolder + '/testresults.csv', results)
 
         print("Script complete, press enter to close this window...")
         input()
