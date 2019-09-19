@@ -8,11 +8,11 @@ from scipy.signal import savgol_filter
 from dataParserHelper import experimentDataSet
 from dataParserHelper import popSweepAvg
 from dataParserHelper import popSweepAvgWithStats
-from dataParserHelper import interpolate
 from dataParserHelper import parseRawCSV
 from dataParserHelper import InvertPhase
 from dataParserHelper import getColumn
 from dataParser3 import writeCSV
+from PolMath import *
 import matplotlib.pyplot as plt
 
 def monotonicallyDescendingOrder(dataList):
@@ -58,6 +58,8 @@ def parse_process_write(basefolder, experimentName):
 
     directoryName1 = 'c:/potentiostat/squidstatcalibrator/bin/debug/ACdataStandards/' + experimentName + ' impedance/'
     directoryName2 = 'c:/potentiostat/squidstatcalibrator/bin/debug/ACdataStandards/' + experimentName + ' stdev/'
+    if not os.path.isdir('c:/potentiostat/squidstatcalibrator/bin/debug/ACdataStandards/'):
+        os.mkdir('c:/potentiostat/squidstatcalibrator/bin/debug/ACdataStandards/')
     if not os.path.isdir(directoryName1):
         os.mkdir(directoryName1)
     if not os.path.isdir(directoryName2):

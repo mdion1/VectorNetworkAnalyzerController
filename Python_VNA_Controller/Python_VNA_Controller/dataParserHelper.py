@@ -309,8 +309,8 @@ class sweep:
     
     def cleanData(self):
         success = True
-        zmod_margin = 0.1
-        phase_margin = 5
+        zmod_margin = 0.5
+        phase_margin = 20
         zmod_stdev_margin = 2
         phase_stdev_margin = 3
         for i in range(0, len(self.allData["Frequency list"])):
