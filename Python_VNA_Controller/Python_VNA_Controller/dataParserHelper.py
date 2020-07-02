@@ -12,10 +12,10 @@ import PolMath
 
 #****************** Helper functions **********************
 
-FREQUENCY_COLUMN = 6
-MAGNITUDE_COLUMN = 7
-PHASE_COLUMN = 8
-EWE_AMPLITUDE_COLUMN = 10
+FREQUENCY_COLUMN = 5
+MAGNITUDE_COLUMN = 6
+PHASE_COLUMN = 7
+EWE_AMPLITUDE_COLUMN = 9
 NUMBER_OF_SAVED_COLUMNS = 4
 
 def condenseRawCSV(filename):
