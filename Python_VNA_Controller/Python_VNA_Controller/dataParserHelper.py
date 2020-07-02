@@ -8,7 +8,7 @@ print('statistics imported')
 import numpy as np
 print('numpy imported')
 import matplotlib.pyplot as plt
-import PolMath
+from PolMath import *
 
 #****************** Helper functions **********************
 
@@ -320,12 +320,15 @@ class sweep:
         phase_margin = 20
         zmod_stdev_margin = 2
         phase_stdev_margin = 3
+        comparisonDataLookupTable = [self.allData["Freq comparison data"], self.allData["Zmod comparison data"], self.allData["Phase comparison data"], self.allData["Zmod stdev comparison data"], self.allData["Phase stdev comparison data"]]
+        comparisonDataLookupTable = rotateTable(comparisonDataLookupTable)
         for i in range(0, len(self.allData["Frequency list"])):
             sampleSize = len(self.allData["Zmod"][i])
-            Zmod_baseline = self.allData["Zmod comparison data"][i]
-            Phase_baseline = self.allData["Phase comparison data"][i]
-            stdevZmod_max = self.allData["Zmod stdev comparison data"][i] * zmod_stdev_margin
-            stdevPhase_max = self.allData["Phase stdev comparison data"][i] * phase_stdev_margin
+            freq = self.allData["Frequency list"][i]
+            Zmod_baseline = interpolate(freq, comparisonDataLookupTable, ycol = 1, semilog = True)
+            Phase_baseline = interpolate(freq, comparisonDataLookupTable, ycol = 2, semilog = True)
+            stdevZmod_max = interpolate(freq, comparisonDataLookupTable, ycol = 3, semilog = True) * zmod_stdev_margin
+            stdevPhase_max = interpolate(freq, comparisonDataLookupTable, ycol = 4, semilog = True) * phase_stdev_margin
             while True:
                 dataOk = True
                 _Zmod = statistics.mean(self.allData["Zmod"][i])

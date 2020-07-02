@@ -80,3 +80,12 @@ def interpolate(x, lookupTable, ycol = 1, semilog = True):
         yR = lookupTable[indexR][ycol]
         yi = yL + (xi - xL) / (xR - xL) * (yR - yL)
         return yi
+
+def rotateTable(table):
+    column = []
+    newTable = []
+    for i in range(0, len(table[0])):
+        newTable.append([])
+        for j in range(0, len(table)):
+            newTable[i].append(table[j][i])
+    return newTable
