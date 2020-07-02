@@ -11,15 +11,22 @@ import matplotlib.pyplot as plt
 import PolMath
 
 #****************** Helper functions **********************
+
+FREQUENCY_COLUMN = 6
+MAGNITUDE_COLUMN = 7
+PHASE_COLUMN = 8
+EWE_AMPLITUDE_COLUMN = 10
+NUMBER_OF_SAVED_COLUMNS = 4
+
 def condenseRawCSV(filename):
     dataTable = []
     with open(filename, mode = 'r') as csv_file:
         csv_reader = csv.reader(csv_file, delimiter=',')
         for row in csv_reader:
-            if len(row) < 10:
+            if len(row) <= NUMBER_OF_SAVED_COLUMNS:
                 return;
             row_float = []
-            for i in [7, 8, 9]:
+            for i in [FREQUENCY_COLUMN, MAGNITUDE_COLUMN, PHASE_COLUMN, EWE_AMPLITUDE_COLUMN]:
                 try:
                     row_float.append(float(row[i]))
                 except ValueError:
@@ -28,7 +35,7 @@ def condenseRawCSV(filename):
                 dataTable.append(row_float)
     with open(filename, 'w') as csv_file:
         csv_writer = csv.writer(csv_file, delimiter=',', lineterminator = '\n')
-        csv_writer.writerow(['Frequency', 'Magnitude', 'Phase(degrees)'])
+        csv_writer.writerow(['Frequency', 'Magnitude', 'Phase(degrees)', 'AC amplitude (mV)'])
         for i in range(0, len(dataTable)):
             csv_writer.writerow(dataTable[i])
         csv_file.close()
